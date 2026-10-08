@@ -60,8 +60,10 @@ function normalise(row: Record<string, unknown>): CallRow {
   return out as unknown as CallRow;
 }
 
-function toDb(patch: Partial<CallRow>): Record<string, unknown> {
-  const out: Record<string, unknown> = {};
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+function toDb(patch: Partial<CallRow>): Record<string, any> {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  const out: Record<string, any> = {};
   for (const [k, v] of Object.entries(patch)) {
     if (v === undefined || k === "id" || k === "created_at") continue;
     out[k] = JSON_COLS.has(k) && v !== null ? sql().json(v as never) : v;
