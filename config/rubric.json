@@ -1,0 +1,109 @@
+{
+  "_note": "All qualify thresholds live here. INTERNAL ONLY: never sent to the voice agent or a caller. See README > Tuning the rubric.",
+  "status": {
+    "qualified_min": 70,
+    "borderline_min": 40,
+    "max_failed_criteria": 1
+  },
+  "points": {
+    "scope": { "full": 25, "partial": 12, "zero": 0 },
+    "location": { "full": 25, "partial": 12, "zero": 0 },
+    "timeline": { "full": 20, "partial": 12, "zero": 0, "unknown": 12 },
+    "budget": { "full": 15, "partial": 8, "zero": 0 },
+    "decision_maker": { "full": 15, "partial": 10, "zero": 0, "unknown": 15 }
+  },
+  "scope": {
+    "excluded_scope_categories": ["advice_only", "decor_only", "furniture_only", "vastu_only"],
+    "excluded_commercial_types": ["restaurant", "hotel", "retail", "gym", "cafe", "bar", "salon", "showroom"],
+    "full_scope_categories": ["full_home", "multi_room", "office"],
+    "partial_scope_categories": ["single_room", "vague"],
+    "commercial_min_sqft": 500,
+    "commercial_max_sqft": 3300
+  },
+  "timeline": {
+    "min_weeks": 6,
+    "full_weeks": 8
+  },
+  "budget": {
+    "_note": "A volunteered budget below these numbers is 'clearly below the scope' and fails the lead (Nikhil: 'note it and do not forward'). Below threshold x tight_multiplier is 'tight'.",
+    "clearly_below_inr": {
+      "full_home": 300000,
+      "single_room": 200000,
+      "two_rooms": 250000,
+      "multi_room": 300000,
+      "office_per_sqft": 600
+    },
+    "tight_multiplier": 1.5,
+    "clearly_below_is_disqualifying": true
+  },
+  "reengage": {
+    "timeline_weeks": 4,
+    "exploring_weeks": 5
+  },
+  "extraction": {
+    "min_confidence": 0.7
+  },
+  "location": {
+    "service_areas": [
+      "Kothrud", "Baner", "Aundh", "Wakad", "Koregaon Park", "Kalyani Nagar", "Viman Nagar", "Hadapsar",
+      "Magarpatta", "NIBM", "Kondhwa", "Undri", "Shivane", "Warje", "Erandwane", "Deccan", "Kharadi",
+      "Nanded City", "Sus", "Bavdhan", "Pashan", "Pimpri", "Chinchwad", "Pimple Saudagar", "Pimple Nilakh",
+      "Ravet", "Hinjewadi"
+    ],
+    "aliases": {
+      "cybercity": "Magarpatta",
+      "cyber city": "Magarpatta",
+      "amanora": "Hadapsar",
+      "sunderban": "Aundh",
+      "sundarban": "Aundh",
+      "dahanukar colony": "Kothrud",
+      "karve nagar": "Kothrud",
+      "karvenagar": "Kothrud",
+      "mayur colony": "Kothrud",
+      "balewadi": "Baner",
+      "sus road": "Sus",
+      "pimple gurav": "Pimple Saudagar",
+      "nigdi": "Chinchwad",
+      "akurdi": "Chinchwad",
+      "punawale": "Ravet",
+      "tathawade": "Wakad",
+      "bopodi": "Aundh",
+      "aundh road": "Aundh",
+      "shivajinagar": "Deccan",
+      "shivaji nagar": "Deccan",
+      "model colony": "Deccan",
+      "prabhat road": "Erandwane",
+      "law college road": "Erandwane",
+      "kalyaninagar": "Kalyani Nagar",
+      "koregaon": "Koregaon Park",
+      "kp": "Koregaon Park",
+      "vimannagar": "Viman Nagar",
+      "wanowrie": "NIBM",
+      "salunke vihar": "NIBM",
+      "mohammed wadi": "Undri",
+      "mohammadwadi": "Undri",
+      "pisoli": "Undri",
+      "kondwa": "Kondhwa",
+      "hinjawadi": "Hinjewadi",
+      "kharadi bypass": "Kharadi",
+      "sinhgad road": "Nanded City",
+      "dhayari": "Nanded City",
+      "camp": "Deccan",
+      "sb road": "Deccan",
+      "senapati bapat road": "Deccan",
+      "boat club road": "Koregaon Park",
+      "pcmc": "Pimpri",
+      "pimpri chinchwad": "Pimpri",
+      "pimple nilak": "Pimple Nilakh",
+      "pimple saudagr": "Pimple Saudagar"
+    },
+    "_unclear_note": "Ambiguous areas score 'partial' (12) instead of failing. Listed in SETUP.md for Nikhil to confirm.",
+    "unclear_areas": ["wagholi", "lohegaon", "dhanori", "vishrantwadi", "yerawada", "katraj", "bibwewadi", "ambegaon", "narhe", "manjri", "moshi", "chakan", "dighi", "bhosari", "keshav nagar", "mundhwa", "pune"],
+    "outside": [
+      "talegaon", "lonavala", "lonavla", "nashik", "mumbai", "navi mumbai", "thane", "kalyan", "panvel",
+      "satara", "kolhapur", "nagpur", "aurangabad", "sambhajinagar", "ahmednagar", "solapur", "goa",
+      "bangalore", "bengaluru", "hyderabad", "delhi", "gurgaon", "noida", "chennai", "kolkata", "baramati",
+      "shirur", "khandala", "kamshet", "alibaug", "mahabaleshwar", "panchgani"
+    ]
+  }
+}
