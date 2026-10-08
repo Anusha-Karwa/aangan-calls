@@ -101,3 +101,58 @@ _Pending: Role-play needs GEMINI_API_KEY (Gemini plays both caller and agent). A
 
 Scenarios: clean-kothrud, price-pusher, nashik, advice-only, diwali-3-weeks, angry-client, low-budget, son-for-parents, restaurant, rude-hinglish, grey-area
 <!-- roleplay:end -->
+
+<!-- eval-gemini:start -->
+## 4a. Transcript eval (gemini)
+
+_Run 2026-10-08 13:58 UTC_
+
+**Mode:** gemini (default model)  
+**Phone-call match rate:** 20/20 (100%)  
+**False negatives** (should book, didn't): none  
+**False positives** (shouldn't book, would): none  
+
+
+| id | status | score | gate | reengage | area | scope | wks | dm | budget | price? | flags | check |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| T01 | qualified | 100 |  |  | Kothrud | full_home | 30 | self |  |  |  | ✅ |
+| T02 | qualified | 100 |  |  | Wakad | full_home | 12.6 | self |  | yes |  | ✅ |
+| T03 | unqualified | 67 | location | closed | Nashik | multi_room |  | self |  |  | unconfirmed_fields | ✅ |
+| T04 | unqualified | 54 | scope | warm |  | advice_only |  | self |  |  | unconfirmed_fields | ✅ |
+| T05 | qualified | 100 |  |  | Koregaon Park | full_home | 17 | self |  |  | vip | ✅ |
+| T06 | qualified | 100 |  |  | Baner | office | 16.7 | self |  |  |  | ✅ |
+| T07 | unqualified | 67 | timeline | warm |  | multi_room | 3 | self |  |  |  | ✅ |
+| T08 | incomplete |  |  |  |  |  |  |  |  |  |  | ✅ |
+| T09 | escalated |  |  |  | Viman Nagar | full_home |  | self |  |  | frustrated,wants_human,existing_client | ✅ |
+| T10 | unqualified | 77 | budget | cold | Kharadi | multi_room |  | self | 150000 | yes | unconfirmed_fields | ✅ |
+| T11 | qualified | 92 |  |  | Baner | full_home |  | self |  |  | unconfirmed_fields | ✅ |
+| T12 | qualified | 100 |  |  | Kalyani Nagar | full_home | 28 | self |  |  |  | ✅ |
+| T13 | qualified | 92 |  |  | Aundh | full_home |  | self |  | yes | frustrated,unconfirmed_fields | ✅ |
+| T14 | qualified | 87 |  |  | Hadapsar | full_home |  | represents |  |  | unconfirmed_fields,represented | ✅ |
+| T15 | qualified | 92 |  |  | Undri | full_home |  | authorised |  |  | unconfirmed_fields | ✅ |
+| T16 | qualified | 79 |  |  | Viman Nagar | vague |  | unknown |  |  | frustrated,unconfirmed_fields | ✅ |
+| T17 | qualified | 100 |  |  | Pimple Saudagar | full_home | 27.1 | self |  |  |  | ✅ |
+| T18 | unqualified | 54 | scope | closed |  | office |  | self |  | yes | unconfirmed_fields | ✅ |
+| T19 | unqualified | 67 | scope | closed | Koregaon Park | office |  | self |  |  | unconfirmed_fields | ✅ |
+| T20 | qualified | 100 |  |  | Magarpatta | full_home |  | self |  |  |  | ✅ |
+| W01 | qualified | 92 |  |  | Viman Nagar | full_home |  | self |  |  | unconfirmed_fields |  |
+| W02 | incomplete |  |  |  |  | vague |  | unknown |  | yes |  |  |
+| W03 | qualified | 92 |  |  | Pimple Nilakh | full_home |  | self |  |  | unconfirmed_fields |  |
+| W04 | qualified | 100 |  |  | Chinchwad | office | 19.7 | self |  |  |  |  |
+| W05 | incomplete |  |  |  | Baner | full_home |  | self |  |  | unconfirmed_fields |  |
+| W06 | qualified | 92 |  |  | Koregaon Park | full_home |  | self |  |  | vip,unconfirmed_fields |  |
+| W07 | unqualified | 67 | scope | closed | Kothrud | office |  | self |  |  | unconfirmed_fields |  |
+| W08 | qualified | 92 |  |  | Aundh | full_home |  | self |  |  | frustrated,unconfirmed_fields |  |
+| W09 | qualified | 92 |  |  | Aundh | multi_room |  | self |  |  | unconfirmed_fields |  |
+| W10 | qualified | 79 |  |  | Hinjewadi | vague |  | self |  |  | unconfirmed_fields |  |
+| F01 | qualified | 100 |  |  | Kalyani Nagar | full_home | 25.7 | self |  |  |  |  |
+| F02 | qualified | 100 |  |  | Baner | multi_room |  | self |  |  | unconfirmed_fields |  |
+| F03 | unqualified | 75 | location | closed | Talegaon Dabhade | full_home | 16 | self | 2000000 |  |  |  |
+| F04 | incomplete |  |  |  | Pune | vague |  | unknown |  | yes | unconfirmed_fields |  |
+| F05 | qualified | 100 |  |  | Hinjewadi Phase 1 | office | 18 | authorised | 8000000 |  | vip |  |
+| F06 | qualified | 100 |  |  | NIBM Road | full_home |  | self | 4000000 |  |  |  |
+| F07 | incomplete |  |  |  | Pune |  |  |  |  | yes |  |  |
+| F08 | unqualified | 80 | timeline | warm | Wakad | multi_room | 3 | self | 500000 |  |  |  |
+| F09 | qualified | 100 |  |  | Kondhwa | full_home | 27.4 | self |  |  |  |  |
+| F10 | qualified | 92 |  |  | Aundh | full_home |  | self | 2200000 |  | unconfirmed_fields |  |
+<!-- eval-gemini:end -->

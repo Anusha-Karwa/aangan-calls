@@ -171,10 +171,23 @@ export async function extract(transcript: string, callAt: Date = new Date()): Pr
     return { ok: true, extraction: checked.extraction, unconfirmed: checked.unconfirmed, mode: "heuristic" };
   }
 
+  // Bad JSON gets one retry (per the brief). API errors (rate limit, 5xx, timeouts) are
+  // transient and get up to 3 retries with backoff, so a Gemini hiccup doesn't lose a lead.
   let lastError = "";
-  for (let attempt = 1; attempt <= 2; attempt++) {
+  let parseAttempts = 0;
+  let apiErrors = 0;
+  while (parseAttempts < 2 && apiErrors <= 3) {
+    let text: string;
     try {
-      const text = await generateJson({ system: EXTRACT_SYSTEM, prompt: userPrompt(transcript, callAt, attempt), schema: GEMINI_SCHEMA });
+      text = await generateJson({ system: EXTRACT_SYSTEM, prompt: userPrompt(transcript, callAt, parseAttempts + 1), schema: GEMINI_SCHEMA });
+    } catch (e) {
+      lastError = e instanceof Error ? e.message : String(e);
+      apiErrors++;
+      await new Promise((r) => setTimeout(r, 1500 * 2 ** (apiErrors - 1)));
+      continue;
+    }
+    parseAttempts++;
+    try {
       const parsed = ExtractionSchema.safeParse(JSON.parse(text));
       if (!parsed.success) {
         lastError = parsed.error.issues.slice(0, 5).map((i) => `${i.path.join(".")}: ${i.message}`).join("; ");
@@ -183,7 +196,7 @@ export async function extract(transcript: string, callAt: Date = new Date()): Pr
       const checked = crossCheck(parsed.data, transcript);
       return { ok: true, extraction: checked.extraction, unconfirmed: checked.unconfirmed, mode: "gemini" };
     } catch (e) {
-      lastError = e instanceof Error ? e.message : String(e);
+      lastError = `invalid JSON: ${e instanceof Error ? e.message : String(e)}`;
     }
   }
   return { ok: false, extraction: emptyExtraction({ summary: "Automatic extraction failed: read the transcript." }), unconfirmed: [], mode: "gemini", error: lastError };
