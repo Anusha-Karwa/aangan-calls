@@ -31,6 +31,9 @@ const hasWord = (hay: string, needle: string) => (" " + hay + " ").includes(" " 
 export function matchLocation(raw: string | null, cfg: RubricConfig = rubricConfig): LocationMatch {
   if (!raw || !raw.trim()) return { match: "unclear", area: null };
   const text = norm(raw);
+  // "Near Wagholi, or maybe Kharadi": if the caller also names an ambiguous area, the location is unclear.
+  const hedged = cfg.location.unclear_areas.some((a) => a !== "pune" && hasWord(text, a));
+  if (hedged) return { match: "unclear", area: raw.trim() };
   const aliases = Object.entries(cfg.location.aliases).sort((a, b) => b[0].length - a[0].length);
   for (const [alias, area] of aliases) if (hasWord(text, alias)) return { match: "in", area };
   const areas = [...cfg.location.service_areas].sort((a, b) => b.length - a.length);

@@ -50,13 +50,18 @@ function analyse(turns: { who: "Agent" | "Caller"; text: string }[]) {
   const all = agent.join("\n").toLowerCase();
   const priceHits = agent.filter((t) => PRICE_RE.test(t));
   const multiQ = agent.filter((t) => (t.match(/\?/g) ?? []).length > 1);
+  // English + Hindi (Devanagari / Hinglish) phrases, since the agent replies in the caller's language.
+  const BOOKED = /calendar invite|is booked|booked (you|your|it)|i've booked|i have booked|confirmed for|have booked|बुक हो गई|बुक कर दिया|कैलेंडर इनवाइट|book ho gay/;
   const ending: Ending | "unclear" =
-    /senior|call you back within 15|callback|call you back/.test(all) && /sorry|apolog/.test(all) && !/booked|calendar invite/.test(all) ? "escalated"
-      : /calendar invite|is booked|booked (you|your|it)|confirmed for|have booked/.test(all) ? "booked"
-      : /right fit|not be able|unable to take|outside (our|the) (service )?area|don't (do|take|offer)|do not (do|take)|can't take|cannot take/.test(all) ? "declined"
+    /senior|call you back within 15|callback|call you back|कॉल बैक|वापस कॉल/.test(all) && /sorry|apolog|माफ़ी|क्षमा/.test(all) && !BOOKED.test(all) ? "escalated"
+      : BOOKED.test(all) ? "booked"
+      : /right fit|not be able|unable to take|outside (our|the) (service )?area|don't (do|take|offer)|do not (do|take)|can't take|cannot take|सही फिट नहीं|नहीं कर पाएंगे/.test(all) ? "declined"
       : "unclear";
   const spelledEmail = agent.some((t) => /\b[a-z](\s?[-–.]\s?|\s)[a-z](\s?[-–.]\s?|\s)[a-z]\b/i.test(t) || /dot com|at gmail|at the rate/i.test(t));
-  const readBack = agent.some((t) => /(tomorrow|day after|\d{1,2}(:\d{2})?\s?(am|pm))/i.test(t) && /(confirm|so that's|to recap|just to|read back|summar)/i.test(t));
+  // Read-back = before ending, one agent turn restates the booked time AND at least one captured detail.
+  const TIME = /(tomorrow|day after|saturday|sunday|monday|tuesday|wednesday|thursday|friday|\d{1,2}(:\d{2})?\s?(am|pm)|\d{1,2}:\d{2}\s?बजे|कल|परसों)/i;
+  const DETAIL = /(sq ?ft|bhk|kitchen|bedroom|living|by (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|फ़रवरी|फरवरी|इंटीरियर|kothrud|baner|hadapsar|wakad|aundh|kharadi|pimple|wagholi|पिंपले)/i;
+  const readBack = agent.slice(-3).some((t) => TIME.test(t) && DETAIL.test(t));
   return { priceHits, multiQ: multiQ.length, agentTurns: agent.length, ending, spelledEmail, readBack };
 }
 
@@ -84,7 +89,9 @@ async function main() {
     writeResultsSection("roleplay", "4b. Simulated-caller role-play", `_Pending: ${msg}_\n\nScenarios: ${SCENARIOS.map((s) => s.key).join(", ")}`);
     return;
   }
-  const filter = process.argv.slice(2);
+  // --rescore: re-check the saved transcripts in scripts/out/roleplay instead of generating new calls.
+  const rescore = process.argv.includes("--rescore");
+  const filter = process.argv.slice(2).filter((a) => !a.startsWith("--"));
   const scenarios = filter.length ? SCENARIOS.filter((s) => filter.some((f) => s.key.includes(f))) : SCENARIOS;
   const agentSystem = fs.readFileSync("prompts/vaani_agent.md", "utf8") + "\n\nKNOWLEDGE BASE:\n" + fs.readFileSync("prompts/knowledge_base.md", "utf8") + AGENT_TEXT_MODE;
   const outDir = path.join("scripts", "out", "roleplay");
@@ -94,9 +101,18 @@ async function main() {
   let fails = 0;
   for (const s of scenarios) {
     process.stdout.write(`${s.key} … `);
-    const turns = await runScenario(s, agentSystem);
+    const saved = path.join(outDir, `${s.key}.txt`);
+    let turns: { who: "Agent" | "Caller"; text: string }[];
+    if (rescore && fs.existsSync(saved)) {
+      turns = fs.readFileSync(saved, "utf8").split("\n").filter(Boolean).map((l) => {
+        const [who, ...rest] = l.split(": ");
+        return { who: who === "Caller" ? "Caller" : "Agent", text: rest.join(": ") };
+      });
+    } else {
+      turns = await runScenario(s, agentSystem);
+    }
     const transcript = turns.map((t) => `${t.who === "Caller" ? "Caller" : "Agent"}: ${t.text}`).join("\n");
-    fs.writeFileSync(path.join(outDir, `${s.key}.txt`), transcript + "\n");
+    fs.writeFileSync(saved, transcript + "\n");
     const a = analyse(turns);
     const ex = await extract(transcript, new Date());
     const r = evaluate(ex.extraction, new Date());

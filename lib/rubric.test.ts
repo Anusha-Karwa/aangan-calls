@@ -24,7 +24,7 @@ describe("matchLocation", () => {
   it.each(["Nashik", "Talegaon Dabhade, near Pune", "Lonavala", "Andheri, Mumbai"])("%s is outside", (raw) =>
     expect(matchLocation(raw).match).toBe("outside"));
 
-  it.each(["Wagholi", "Pune", "somewhere new", null])("%s is unclear", (raw) =>
+  it.each(["Wagholi", "Pune", "somewhere new", null, "near Wagholi, or maybe Kharadi side"])("%s is unclear", (raw) =>
     expect(matchLocation(raw).match).toBe("unclear"));
 });
 

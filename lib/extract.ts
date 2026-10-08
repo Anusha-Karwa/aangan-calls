@@ -28,7 +28,8 @@ RULES
   multi_room = exactly 2 rooms/spaces (rooms_count = 2), or a home office + study etc.;
   single_room = one room only; office = office/clinic/studio/coworking/any commercial fitout;
   advice_only / decor_only = ideas, colours, styling, rearranging, no execution; furniture_only = only buying/sourcing furniture; vastu_only = only Vastu advice;
-  vague = they want "interiors" but did not say what.
+  vague = they want "interiors" but did not say what, OR they are undecided ("maybe the living room, maybe also the bedroom", "still figuring it out"). When the caller hedges, pick vague, never the bigger category.
+- location_area: copy every place the caller named, including hedges ("near Wagholi or maybe Kharadi"). Do not pick one for them.
 - execution_included = false only if the caller says they don't want execution / will execute themselves / just ideas.
 - commercial_subtype only for commercial projects (restaurant, cafe, hotel, retail, gym, office, clinic, coworking ...).
 - decision_maker: self = owner/decides; authorised = spouse/partner/boss told them to go ahead; represents = calling for someone else (parents, landlord, company) who decides; research = just collecting info for someone else with no plan for them to attend; unknown = not discussed.

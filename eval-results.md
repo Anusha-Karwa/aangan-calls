@@ -95,17 +95,29 @@ _Run 2026-10-08 10:16 UTC_
 <!-- roleplay:start -->
 ## 4b. Simulated-caller role-play
 
-_Run 2026-10-08 10:17 UTC_
+_Run 2026-10-08 14:18 UTC_
 
-_Pending: Role-play needs GEMINI_API_KEY (Gemini plays both caller and agent). Add it to .env.local and run `npm run roleplay`._
+**Passed:** 11/11. Transcripts in `scripts/out/roleplay/`.
 
-Scenarios: clean-kothrud, price-pusher, nashik, advice-only, diwali-3-weeks, angry-client, low-budget, son-for-parents, restaurant, rude-hinglish, grey-area
+| scenario | ending | expected | status (4a) | score | price spoken | 1-question turns | email spelled | read-back | result |
+|---|---|---|---|---|---|---|---|---|---|
+| clean-kothrud | booked | booked | qualified | 100 | ✅ none | 12/13 | yes | yes | ✅ |
+| price-pusher | booked | booked | qualified | 100 | ✅ none | 9/10 | yes | yes | ✅ |
+| nashik | declined | declined | unqualified | 54 | ✅ none | 4/4 | no | no | ✅ |
+| advice-only | declined | declined | unqualified | 54 | ✅ none | 3/3 | no | no | ✅ |
+| diwali-3-weeks | declined | declined | unqualified | 80 | ✅ none | 6/6 | no | no | ✅ |
+| angry-client | escalated | escalated | escalated | - | ✅ none | 3/3 | no | no | ✅ |
+| low-budget | declined | declined | unqualified | 64 | ✅ none | 3/3 | no | no | ✅ |
+| son-for-parents | booked | booked | qualified | 95 | ✅ none | 11/12 | yes | yes | ✅ |
+| restaurant | declined | declined | unqualified | 67 | ✅ none | 3/3 | no | no | ✅ |
+| rude-hinglish | booked | booked | qualified | 100 | ✅ none | 10/11 | yes | yes | ✅ |
+| grey-area | booked | booked | qualified | 74 | ✅ none | 13/13 | yes | yes | ✅ |
 <!-- roleplay:end -->
 
 <!-- eval-gemini:start -->
 ## 4a. Transcript eval (gemini)
 
-_Run 2026-10-08 13:58 UTC_
+_Run 2026-10-08 14:28 UTC_
 
 **Mode:** gemini (default model)  
 **Phone-call match rate:** 20/20 (100%)  
@@ -115,44 +127,44 @@ _Run 2026-10-08 13:58 UTC_
 
 | id | status | score | gate | reengage | area | scope | wks | dm | budget | price? | flags | check |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| T01 | qualified | 100 |  |  | Kothrud | full_home | 30 | self |  |  |  | ✅ |
+| T01 | qualified | 100 |  |  | Kothrud — Dahanukar Colony | full_home | 30 | authorised |  |  |  | ✅ |
 | T02 | qualified | 100 |  |  | Wakad | full_home | 12.6 | self |  | yes |  | ✅ |
 | T03 | unqualified | 67 | location | closed | Nashik | multi_room |  | self |  |  | unconfirmed_fields | ✅ |
-| T04 | unqualified | 54 | scope | warm |  | advice_only |  | self |  |  | unconfirmed_fields | ✅ |
-| T05 | qualified | 100 |  |  | Koregaon Park | full_home | 17 | self |  |  | vip | ✅ |
+| T04 | unqualified | 54 | scope | warm |  | advice_only |  | unknown |  |  | unconfirmed_fields | ✅ |
+| T05 | qualified | 100 |  |  | Koregaon Park | full_home | 17.3 | self |  |  | vip | ✅ |
 | T06 | qualified | 100 |  |  | Baner | office | 16.7 | self |  |  |  | ✅ |
-| T07 | unqualified | 67 | timeline | warm |  | multi_room | 3 | self |  |  |  | ✅ |
+| T07 | unqualified | 54 | timeline | warm |  | vague | 3 | self |  |  |  | ✅ |
 | T08 | incomplete |  |  |  |  |  |  |  |  |  |  | ✅ |
-| T09 | escalated |  |  |  | Viman Nagar | full_home |  | self |  |  | frustrated,wants_human,existing_client | ✅ |
+| T09 | escalated |  |  |  | Viman Nagar |  |  | self |  |  | frustrated,wants_human,existing_client | ✅ |
 | T10 | unqualified | 77 | budget | cold | Kharadi | multi_room |  | self | 150000 | yes | unconfirmed_fields | ✅ |
 | T11 | qualified | 92 |  |  | Baner | full_home |  | self |  |  | unconfirmed_fields | ✅ |
-| T12 | qualified | 100 |  |  | Kalyani Nagar | full_home | 28 | self |  |  |  | ✅ |
-| T13 | qualified | 92 |  |  | Aundh | full_home |  | self |  | yes | frustrated,unconfirmed_fields | ✅ |
-| T14 | qualified | 87 |  |  | Hadapsar | full_home |  | represents |  |  | unconfirmed_fields,represented | ✅ |
+| T12 | qualified | 100 |  |  | Kalyani Nagar | full_home | 28.1 | self |  |  |  | ✅ |
+| T13 | qualified | 92 |  |  | Aundh | full_home |  | self |  | yes | unconfirmed_fields | ✅ |
+| T14 | qualified | 74 |  |  | Hadapsar | vague |  | represents |  |  | unconfirmed_fields,represented | ✅ |
 | T15 | qualified | 92 |  |  | Undri | full_home |  | authorised |  |  | unconfirmed_fields | ✅ |
-| T16 | qualified | 79 |  |  | Viman Nagar | vague |  | unknown |  |  | frustrated,unconfirmed_fields | ✅ |
+| T16 | qualified | 79 |  |  | Viman Nagar | vague |  | self |  |  | frustrated,unconfirmed_fields | ✅ |
 | T17 | qualified | 100 |  |  | Pimple Saudagar | full_home | 27.1 | self |  |  |  | ✅ |
 | T18 | unqualified | 54 | scope | closed |  | office |  | self |  | yes | unconfirmed_fields | ✅ |
 | T19 | unqualified | 67 | scope | closed | Koregaon Park | office |  | self |  |  | unconfirmed_fields | ✅ |
-| T20 | qualified | 100 |  |  | Magarpatta | full_home |  | self |  |  |  | ✅ |
+| T20 | qualified | 100 |  |  | Magarpatta — Cybercity area | full_home |  | self |  |  |  | ✅ |
 | W01 | qualified | 92 |  |  | Viman Nagar | full_home |  | self |  |  | unconfirmed_fields |  |
-| W02 | incomplete |  |  |  |  | vague |  | unknown |  | yes |  |  |
+| W02 | incomplete |  |  |  |  | vague |  | unknown |  | yes | unconfirmed_fields |  |
 | W03 | qualified | 92 |  |  | Pimple Nilakh | full_home |  | self |  |  | unconfirmed_fields |  |
 | W04 | qualified | 100 |  |  | Chinchwad | office | 19.7 | self |  |  |  |  |
-| W05 | incomplete |  |  |  | Baner | full_home |  | self |  |  | unconfirmed_fields |  |
+| W05 | incomplete |  |  |  | Baner | vague |  | unknown |  |  |  |  |
 | W06 | qualified | 92 |  |  | Koregaon Park | full_home |  | self |  |  | vip,unconfirmed_fields |  |
 | W07 | unqualified | 67 | scope | closed | Kothrud | office |  | self |  |  | unconfirmed_fields |  |
 | W08 | qualified | 92 |  |  | Aundh | full_home |  | self |  |  | frustrated,unconfirmed_fields |  |
-| W09 | qualified | 92 |  |  | Aundh | multi_room |  | self |  |  | unconfirmed_fields |  |
+| W09 | qualified | 79 |  |  | Aundh, Sunderban area | vague |  | self |  |  | unconfirmed_fields |  |
 | W10 | qualified | 79 |  |  | Hinjewadi | vague |  | self |  |  | unconfirmed_fields |  |
 | F01 | qualified | 100 |  |  | Kalyani Nagar | full_home | 25.7 | self |  |  |  |  |
-| F02 | qualified | 100 |  |  | Baner | multi_room |  | self |  |  | unconfirmed_fields |  |
-| F03 | unqualified | 75 | location | closed | Talegaon Dabhade | full_home | 16 | self | 2000000 |  |  |  |
-| F04 | incomplete |  |  |  | Pune | vague |  | unknown |  | yes | unconfirmed_fields |  |
-| F05 | qualified | 100 |  |  | Hinjewadi Phase 1 | office | 18 | authorised | 8000000 |  | vip |  |
+| F02 | qualified | 100 |  |  | Baner, Pune | multi_room |  | self |  |  |  |  |
+| F03 | unqualified | 75 | location | closed | Talegaon Dabhade, near Pune | full_home | 16 | self | 2000000 |  |  |  |
+| F04 | incomplete |  |  |  | Pune | vague |  | unknown |  | yes |  |  |
+| F05 | qualified | 100 |  |  | Hinjewadi Phase 1, Pune | office | 18 | authorised | 8000000 |  | vip |  |
 | F06 | qualified | 100 |  |  | NIBM Road | full_home |  | self | 4000000 |  |  |  |
-| F07 | incomplete |  |  |  | Pune |  |  |  |  | yes |  |  |
-| F08 | unqualified | 80 | timeline | warm | Wakad | multi_room | 3 | self | 500000 |  |  |  |
-| F09 | qualified | 100 |  |  | Kondhwa | full_home | 27.4 | self |  |  |  |  |
+| F07 | incomplete |  |  |  | Pune |  |  | unknown |  | yes |  |  |
+| F08 | unqualified | 80 | timeline | warm | Wakad, Pune | multi_room | 3 | self | 500000 |  |  |  |
+| F09 | qualified | 100 |  |  | Kondhwa, Pune | full_home | 27.4 | self |  |  |  |  |
 | F10 | qualified | 92 |  |  | Aundh | full_home |  | self | 2200000 |  | unconfirmed_fields |  |
 <!-- eval-gemini:end -->
