@@ -1,0 +1,37 @@
+{
+  "name": "aangan-voice-agent",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Aangan Studio phone agent: Vaani call -> Gemini extraction -> rubric -> Cal.com booking, Resend email, HubSpot and a designer dashboard.",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit",
+    "migrate": "tsx scripts/migrate.ts",
+    "eval": "tsx scripts/eval.ts",
+    "roleplay": "tsx scripts/roleplay.ts"
+  },
+  "dependencies": {
+    "@google/genai": "^1.0.0",
+    "next": "^14.2.30",
+    "postgres": "^3.4.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "server-only": "^0.0.1",
+    "zod": "^3.24.0"
+  },
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "autoprefixer": "^10.4.20",
+    "dotenv": "^16.4.5",
+    "postcss": "^8.4.49",
+    "tailwindcss": "^3.4.17",
+    "tsx": "^4.19.0",
+    "typescript": "^5.6.3",
+    "vitest": "^2.1.9"
+  }
+}
