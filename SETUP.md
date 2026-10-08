@@ -151,7 +151,7 @@ Without `DATABASE_URL` the app falls back to a local JSON file, which **does not
 | Webhook replies 200 at once and processes in the background (`waitUntil`) | Vaani times out after 10 s and disables a webhook after 5 failures | `app/api/vaani/webhook/route.ts` |
 | Gemini model `gemini-3.8-flash` | Current stable Flash per Google's docs (Oct 2026) | `GEMINI_MODEL` env |
 | `VAANI_RATE_INR=7` kept as the brief says | Vaani's API docs list voicebot at 4 paise/sec (≈₹2.40/min); set your real rate | `VAANI_RATE_INR` env |
-| HubSpot deal stages: `appointmentscheduled` (booked) / `qualifiedtobuy` (no slot) | HubSpot's default Sales Pipeline | `HUBSPOT_STAGE_*` env |
+| HubSpot deal stages: **Needs Assessment** (`4412778201`) when a consultation is booked, **Initial Inquiry** (`4412778200`) when qualified but no slot | Your account uses a custom "Design Sales Pipeline" (no default `appointmentscheduled` stage). To get a dedicated "Consultation booked" stage, add it in HubSpot → Settings → Objects → Deals → Pipelines and put its ID in `HUBSPOT_STAGE_BOOKED` | `HUBSPOT_STAGE_*` env |
 | Dashboard auth = one shared password (cookie, 30 days) | Simple and enough for a studio front desk | `middleware.ts` |
 
 ### Areas mapped to "unclear" (12 points, not a fail). Nikhil to confirm
