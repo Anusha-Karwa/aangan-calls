@@ -242,7 +242,7 @@ export function heuristicExtract(transcript: string): Extraction {
     execution_included: scope_category === "advice_only" ? false : null,
     location_area: location,
     carpet_sqft: sqft ? Number(sqft.replace(/,/g, "")) : null,
-    site_state: /rent/.test(cl) ? "rented" : /bare|empty|possession/.test(cl) ? "bare" : /builder/.test(cl) ? "builder" : null,
+    site_state: /\brent(ed|al)?\b|lease/.test(cl) ? "rented" : /bare|empty|possession/.test(cl) ? "bare" : /builder/.test(cl) ? "builder" : null,
     timeline_text: callerText.split("\n").find((l) => /by (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|diwali|weeks|months|no rush|flexible/i.test(l))?.replace(/^\w+:\s*/, "").slice(0, 120) ?? null,
     weeks_to_target: weeks ? wordNum[weeks.toLowerCase()] ?? (Number(weeks) || null) : null,
     timeline_flexible: /no rush|flexible|no deadline|plenty of time/.test(cl) || null,
