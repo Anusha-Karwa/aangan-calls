@@ -26,9 +26,13 @@ interface CalBooking {
 }
 
 export function bookingTypeFromLocation(location: unknown, responses?: Record<string, unknown>): "site_visit" | "studio" | null {
-  const s = (JSON.stringify(location ?? "") + JSON.stringify(responses ?? {})).toLowerCase();
-  if (/site visit|attendeeinperson|attendee_address|your (home|site)|"site"/.test(s)) return "site_visit";
-  if (/studio|inperson|organizer|office/.test(s)) return "studio";
+  // The event offers two locations: the studio's own address, or the attendee's address
+  // (a site visit). So: our studio address => studio; any other address => site visit.
+  const s = (JSON.stringify(location ?? "") + JSON.stringify(responses?.location ?? "")).toLowerCase();
+  if (/aangan studio|organizer|studio visit/.test(s)) return "studio";
+  if (/site visit|attendeeinperson|attendee_?address/.test(s)) return "site_visit";
+  const loc = typeof location === "string" ? location.trim() : "";
+  if (loc && !/^https?:|integrations:|cal video|google meet|zoom|phone/i.test(loc)) return "site_visit";
   return null;
 }
 

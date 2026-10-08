@@ -52,6 +52,8 @@ npm run roleplay
 
 ## 2. Cal.com event
 
+> ✅ **Done via the API (Oct 8):** event **"Aangan Studio — Design Consultation"**, ID **7399507**, 60 min, slug `aangan-design-consultation`, locations *attendee address (site visit)* + *studio address*, name/email/phone required, 12 h minimum notice, 30 min buffer after. Still check in the Cal.com UI: (a) replace the placeholder studio address with the real one, keeping "Aangan Studio" at the start, which is how the app recognises a studio visit; (b) your availability (default schedule, Asia/Kolkata). The steps below are for reference.
+
 1. Event Types → **New** → title **"Aangan Studio — Design Consultation"**, duration **60 min**.
 2. **Location**: add two options so the caller can choose:
    - *In person (attendee address)*: label it **Site visit**

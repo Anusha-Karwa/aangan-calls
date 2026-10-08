@@ -35,7 +35,7 @@ async function send(id: string) {
     type: "call.completed",
     created: Math.floor(Date.now() / 1000),
     data: {
-      call_id: `sim-${id}`,
+      call_id: `sim-${id}${process.env.SUFFIX ?? ""}`,
       started_at: meta.startedAt,
       duration_sec: meta.durationSec,
       transcript: text.split("\n").slice(1).join("\n").trim(),
