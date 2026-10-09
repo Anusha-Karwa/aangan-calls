@@ -1,0 +1,340 @@
+"use client";
+
+import Link from "next/link";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { markContacted } from "@/app/actions";
+import type { CallLite, Person } from "@/lib/people";
+import { Flags, Score, ScoreRing, StatusPill } from "./ui";
+
+// Dates arrive pre-formatted from the server (CallLite.label) to avoid hydration mismatches.
+const SITE: Record<string, string> = { bare: "Bare shell", builder: "Builder finish", lived_in: "Lived-in", rented: "Rented", unknown: "Unknown" };
+const DM: Record<string, string> = { self: "Caller decides", authorised: "Authorised by owner", represents: "Calling for the owners", research: "Research only", unknown: "Not confirmed" };
+
+// ---------- count-up numbers ----------
+
+export function CountUp({ value, prefix = "", suffix = "" }: { value: number; prefix?: string; suffix?: string }) {
+  const [n, setN] = useState(0);
+  useEffect(() => {
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return setN(value);
+    let raf = 0;
+    const start = performance.now();
+    const tick = (t: number) => {
+      const p = Math.min(1, (t - start) / 900);
+      setN(Math.round(value * (1 - Math.pow(1 - p, 3))));
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [value]);
+  return <>{prefix}{n.toLocaleString("en-IN")}{suffix}</>;
+}
+
+// ---------- hero pins (Pinterest-style tags that pop open) ----------
+
+export interface Pin {
+  x: number; // % from left
+  y: number; // % from top
+  title: string;
+  value: string;
+  href?: string;
+}
+
+export function HeroPins({ pins }: { pins: Pin[] }) {
+  const [active, setActive] = useState(0);
+  const paused = useRef(false);
+  useEffect(() => {
+    if (pins.length < 2) return;
+    const t = setInterval(() => {
+      if (!paused.current) setActive((a) => (a + 1) % pins.length);
+    }, 2800);
+    return () => clearInterval(t);
+  }, [pins.length]);
+
+  return (
+    <div className="pointer-events-none absolute inset-0 z-10 hidden lg:block">
+      {pins.map((p, i) => {
+        const open = i === active;
+        const leftSide = p.x > 60;
+        const Tag = p.href ? Link : "div";
+        return (
+          <div key={i} className="pointer-events-auto absolute" style={{ left: `${p.x}%`, top: `${p.y}%` }}
+            onMouseEnter={() => { paused.current = true; setActive(i); }}
+            onMouseLeave={() => { paused.current = false; }}>
+            <Tag href={p.href ?? "#"} className="group relative block" aria-label={`${p.title}: ${p.value}`}>
+              <span className="pin-ring absolute -inset-1 rounded-full bg-white/70" />
+              <span className={`relative grid h-7 w-7 place-items-center rounded-full border-2 border-white shadow-lg transition ${open ? "bg-ombre scale-110" : "bg-white/90"}`}>
+                <span className={`h-2 w-2 rounded-full ${open ? "bg-white" : "bg-fuchsia-500"}`} />
+              </span>
+              {open && (
+                <span key={`${i}-${active}`} className={`animate-pop absolute top-1/2 z-20 w-max max-w-[220px] -translate-y-1/2 rounded-2xl bg-white/95 px-3.5 py-2.5 text-left shadow-xl ring-1 ring-violet-100 backdrop-blur ${leftSide ? "right-10" : "left-10"}`}>
+                  <span className="bg-ombre absolute inset-y-2 left-0 w-1 rounded-full" />
+                  <span className="block pl-1.5 text-[10px] font-bold uppercase tracking-wider text-muted">{p.title}</span>
+                  <span className="block pl-1.5 text-sm font-semibold text-ink">{p.value}</span>
+                  {p.href && <span className="block pl-1.5 text-[11px] font-semibold text-fuchsia-600">Open →</span>}
+                </span>
+              )}
+            </Tag>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
+// ---------- people board + details drawer ----------
+
+type View = "all" | "upcoming" | "reengage";
+
+export function PeopleBoard({ view, people }: { view: View; people: Person[] }) {
+  const [openKey, setOpenKey] = useState<string | null>(null);
+  const [callId, setCallId] = useState<string | null>(null);
+  const open = (p: Person, id?: string) => { setOpenKey(p.key); setCallId(id ?? p.latest.id); };
+  const person = people.find((p) => p.key === openKey) ?? null;
+
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpenKey(null);
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, []);
+
+  const now = Date.now() - 2 * 3600_000;
+  const upcoming = useMemo(
+    () => people.flatMap((p) => p.calls.filter((c) => c.booking_start && Date.parse(c.booking_start) >= now && c.booking_status !== "cancelled").map((c) => ({ p, c })))
+      .sort((a, b) => a.c.booking_start!.localeCompare(b.c.booking_start!)),
+    [people, now],
+  );
+  const reengage = useMemo(
+    () => people.filter((p) => p.latest.status === "unqualified" && p.latest.reengage_rating === "warm" && !p.latest.reengaged_at)
+      .sort((a, b) => (a.latest.reengage_date ?? "9999").localeCompare(b.latest.reengage_date ?? "9999")),
+    [people],
+  );
+
+  return (
+    <>
+      {view === "upcoming" ? (
+        upcoming.length ? (
+          <ul className="mt-4 grid gap-3 md:grid-cols-2">
+            {upcoming.map(({ p, c }, i) => (
+              <li key={c.id} className="animate-rise" style={{ animationDelay: `${i * 50}ms` }}>
+                <button onClick={() => open(p, c.id)} className="card card-hover flex w-full gap-4 p-4 text-left">
+                  <div className="bg-ombre grid w-16 shrink-0 place-items-center rounded-xl py-2 text-center text-white shadow-md">
+                    <div className="text-[10px] font-bold uppercase tracking-wider">{c.label.bMonth}</div>
+                    <div className="font-display text-2xl font-semibold leading-none">{c.label.bDay}</div>
+                    <div className="text-[10px] font-semibold">{c.label.bTime}</div>
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate font-semibold text-ink">{p.name ?? p.phone}</span>
+                      <StatusPill status={c.status} />
+                    </div>
+                    <div className="mt-1 text-sm text-muted">{[c.property, c.location_area, c.carpet_sqft ? `${c.carpet_sqft} sq ft` : null].filter(Boolean).join(" · ")}</div>
+                    <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                      <span className="rounded-md bg-violet-50 px-2 py-0.5 font-semibold text-violet-700">{c.booking_type === "site_visit" ? "🏠 Site visit" : c.booking_type === "studio" ? "🏛 Studio" : "Visit type ?"}</span>
+                      <Flags flags={c.flags} />
+                    </div>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        ) : <Empty text="No upcoming consultations yet. Calls the agent books land here, soonest first." />
+      ) : view === "reengage" ? (
+        reengage.length ? (
+          <ul className="mt-4 space-y-2">
+            {reengage.map((p, i) => {
+              const due = p.latest.reengage_date && p.latest.reengage_date <= new Date().toISOString().slice(0, 10);
+              return (
+                <li key={p.key} className={`card card-hover animate-rise flex flex-wrap items-center gap-x-4 gap-y-2 p-4 ${due ? "ombre-border" : ""}`} style={{ animationDelay: `${i * 50}ms` }}>
+                  <span className="w-28">
+                    <span className={`block text-sm font-bold ${due ? "text-ombre" : "text-ink"}`}>{p.latest.label.reengage}</span>
+                    {due && <span className="text-[11px] font-bold uppercase tracking-wider text-orange-600">Due now</span>}
+                  </span>
+                  <button onClick={() => open(p)} className="min-w-0 flex-1 text-left">
+                    <div className="font-semibold text-ink">{p.name ?? p.phone ?? "Unknown caller"}</div>
+                    <div className="truncate text-sm text-muted">{p.latest.decline_reason}</div>
+                  </button>
+                  {p.phone && <a href={`tel:${p.phone}`} className="text-sm font-semibold text-fuchsia-700 hover:underline">{p.phone}</a>}
+                  <form action={markContacted}>
+                    <input type="hidden" name="id" value={p.latest.id} />
+                    <button className="btn-soft">Mark contacted</button>
+                  </form>
+                </li>
+              );
+            })}
+          </ul>
+        ) : <Empty text="No warm leads waiting. Callers with a short timeline or who were 'just exploring' land here." />
+      ) : people.length === 0 ? (
+        <Empty text="No callers match. Test calls appear here a few seconds after they end." />
+      ) : (
+        <>
+          {/* Desktop table */}
+          <div className="card mt-4 hidden overflow-hidden md:block">
+            <table className="w-full text-sm">
+              <thead className="bg-violet-50/60 text-left text-[11px] font-bold uppercase tracking-wider text-muted">
+                <tr>
+                  <th className="px-4 py-3">Caller</th>
+                  <th className="px-4 py-3">Last call</th>
+                  <th className="px-4 py-3">Area</th>
+                  <th className="px-4 py-3 text-right">Score</th>
+                  <th className="px-4 py-3">Status</th>
+                  <th className="px-4 py-3">Consultation</th>
+                  <th className="px-4 py-3" />
+                </tr>
+              </thead>
+              <tbody>
+                {people.map((p, i) => {
+                  const c = p.latest;
+                  const booking = p.calls.find((x) => x.booking_start) ?? null;
+                  return (
+                    <tr key={p.key} onClick={() => open(p)}
+                      className="animate-rise group cursor-pointer border-t border-violet-50 transition hover:bg-gradient-to-r hover:from-violet-50 hover:via-fuchsia-50/60 hover:to-orange-50"
+                      style={{ animationDelay: `${Math.min(i, 12) * 35}ms` }}>
+                      <td className="px-4 py-3">
+                        <div className="flex items-center gap-3">
+                          <Avatar name={p.name ?? p.phone ?? "?"} />
+                          <div className="min-w-0">
+                            <div className="flex items-center gap-2 font-semibold text-ink">
+                              {p.name ?? p.phone ?? "Unknown caller"}
+                              {p.calls.length > 1 && <span className="rounded-full bg-violet-100 px-1.5 text-[10px] font-bold text-violet-700">{p.calls.length} calls</span>}
+                            </div>
+                            <div className="mt-0.5"><Flags flags={c.flags} /></div>
+                          </div>
+                        </div>
+                      </td>
+                      <td className="whitespace-nowrap px-4 py-3 text-muted">{p.calls[0].label.at}</td>
+                      <td className="px-4 py-3 text-ink">{c.location_area ?? <span className="text-slate-300">–</span>}</td>
+                      <td className="px-4 py-3 text-right text-base"><Score score={c.score} /></td>
+                      <td className="px-4 py-3"><StatusPill status={c.status} overridden={c.overridden} /></td>
+                      <td className="whitespace-nowrap px-4 py-3 text-ink">{booking ? booking.label.booking : <span className="text-slate-300">–</span>}</td>
+                      <td className="px-4 py-3 text-right">
+                        <span className="text-xs font-bold text-fuchsia-600 opacity-0 transition group-hover:opacity-100">Details →</span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+          {/* Mobile cards */}
+          <ul className="mt-4 space-y-2 md:hidden">
+            {people.map((p) => (
+              <li key={p.key}>
+                <button onClick={() => open(p)} className="card flex w-full items-center gap-3 p-4 text-left">
+                  <Avatar name={p.name ?? p.phone ?? "?"} />
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="truncate font-semibold text-ink">{p.name ?? p.phone ?? "Unknown caller"}</span>
+                      <StatusPill status={p.latest.status} />
+                    </div>
+                    <div className="mt-0.5 text-xs text-muted">{p.calls[0].label.at} · {p.latest.location_area ?? "area ?"}{p.calls.length > 1 ? ` · ${p.calls.length} calls` : ""}</div>
+                  </div>
+                </button>
+              </li>
+            ))}
+          </ul>
+        </>
+      )}
+
+      {person && <Drawer person={person} callId={callId ?? person.latest.id} onPick={setCallId} onClose={() => setOpenKey(null)} />}
+    </>
+  );
+}
+
+function Avatar({ name }: { name: string }) {
+  const initials = name.replace(/[^A-Za-z ]/g, "").split(" ").filter(Boolean).slice(0, 2).map((w) => w[0]).join("").toUpperCase() || "☎";
+  return <span className="bg-ombre grid h-9 w-9 shrink-0 place-items-center rounded-full text-xs font-bold text-white shadow-sm">{initials}</span>;
+}
+
+function Drawer({ person, callId, onPick, onClose }: { person: Person; callId: string; onPick: (id: string) => void; onClose: () => void }) {
+  const c: CallLite = person.calls.find((x) => x.id === callId) ?? person.latest;
+  const rows: [string, React.ReactNode, string][] = [
+    ["Area", <>{c.location_area ?? "–"}{c.in_service_area === false && <span className="text-rose-600"> (outside area)</span>}</>, "📍"],
+    ["Property", [c.property, c.carpet_sqft ? `${c.carpet_sqft} sq ft` : null, c.site_state ? SITE[c.site_state] : null].filter(Boolean).join(" · ") || "–", "🏠"],
+    ["Scope", c.scope ?? "–", "✏️"],
+    ["Wants it done by", <>{c.timeline_text ?? "–"}{c.target_date && <span className="text-muted"> ({c.label.target})</span>}</>, "⏳"],
+    ["Budget", <>{c.budget_volunteered ?? "Not discussed"}{c.asked_price && <span className="ml-1.5 rounded bg-orange-100 px-1.5 text-[11px] font-semibold text-orange-700">asked price</span>}</>, "₹"],
+    ["Decision-maker", c.decision_maker ? DM[c.decision_maker] ?? c.decision_maker : "Not confirmed", "🤝"],
+    ["Source", c.source ?? "–", "✨"],
+  ];
+  return (
+    <div className="fixed inset-0 z-50" role="dialog" aria-modal="true" aria-label={`Details for ${person.name ?? person.phone}`}>
+      <div className="animate-fade-in absolute inset-0 bg-ink/30 backdrop-blur-[2px]" onClick={onClose} />
+      <aside className="animate-slide-in absolute right-0 top-0 flex h-full w-full max-w-md flex-col overflow-y-auto bg-white shadow-2xl">
+        <div className="bg-ombre relative px-6 pb-6 pt-5 text-white">
+          <button onClick={onClose} className="absolute right-4 top-4 grid h-8 w-8 place-items-center rounded-full bg-white/20 text-lg hover:bg-white/30" aria-label="Close">×</button>
+          <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">Caller</div>
+          <h2 className="mt-1 font-display text-3xl font-semibold">{person.name ?? person.phone ?? "Unknown caller"}</h2>
+          <div className="mt-2 flex flex-wrap gap-2 text-sm">
+            {person.phone && <a href={`tel:${person.phone}`} className="rounded-full bg-white/20 px-3 py-1 font-semibold hover:bg-white/30">📞 {person.phone}</a>}
+            {person.email && <a href={`mailto:${person.email}`} className="rounded-full bg-white/20 px-3 py-1 font-semibold hover:bg-white/30">✉️ {person.email}</a>}
+          </div>
+        </div>
+
+        <div className="space-y-5 p-6">
+          {person.calls.length > 1 && (
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted">{person.calls.length} calls from this person</div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {person.calls.map((x) => (
+                  <button key={x.id} onClick={() => onPick(x.id)} className={`rounded-full px-3 py-1 text-xs font-semibold transition ${x.id === c.id ? "bg-ombre text-white shadow" : "bg-violet-50 text-violet-700 hover:bg-violet-100"}`}>
+                    {x.label.atShort}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex items-center gap-4">
+            <ScoreRing score={c.score} size={88} />
+            <div className="space-y-1.5">
+              <StatusPill status={c.status} overridden={c.overridden} />
+              <div className="text-xs text-muted">Called {c.label.at}{c.duration_sec ? ` · ${Math.floor(c.duration_sec / 60)}m ${c.duration_sec % 60}s` : ""}</div>
+              <Flags flags={c.flags} />
+            </div>
+          </div>
+
+          <div className={`rounded-2xl p-4 ${c.booking_start ? "bg-ombre text-white" : "border border-orange-200 bg-orange-50 text-orange-800"}`}>
+            <div className="text-[11px] font-bold uppercase tracking-wider opacity-80">Consultation</div>
+            <div className="mt-0.5 font-semibold">{c.booking_start ? `${c.label.booking} · ${c.booking_type === "site_visit" ? "Site visit" : c.booking_type === "studio" ? "Studio visit" : "type ?"}` : "Not booked: call back"}</div>
+          </div>
+
+          {c.decline_reason && <div className="rounded-xl bg-slate-50 px-4 py-3 text-sm text-slate-700">{c.decline_reason}{c.reengage_rating && <> · re-engage <strong>{c.reengage_rating}</strong>{c.reengage_date && ` on ${c.label.reengage}`}</>}</div>}
+
+          <dl className="space-y-2">
+            {rows.map(([k, v, icon]) => (
+              <div key={k} className="flex gap-3 rounded-xl border border-violet-50 bg-violet-50/30 p-3">
+                <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-white text-sm shadow-sm">{icon}</span>
+                <div className="min-w-0">
+                  <dt className="text-[10px] font-bold uppercase tracking-wider text-muted">{k}</dt>
+                  <dd className="text-sm text-ink">{v}</dd>
+                </div>
+              </div>
+            ))}
+          </dl>
+
+          {c.summary && (
+            <div>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted">Summary</div>
+              <ul className="mt-2 space-y-1.5 text-sm text-ink">
+                {c.summary.split("\n").filter(Boolean).map((l, i) => (
+                  <li key={i} className="flex gap-2"><span className="bg-ombre mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full" />{l.replace(/^[-•]\s*/, "")}</li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          <Link href={`/calls/${c.id}`} className="btn-ombre block w-full py-3 text-center">Open full details: recording, transcript, actions →</Link>
+        </div>
+      </aside>
+    </div>
+  );
+}
+
+function Empty({ text }: { text: string }) {
+  return (
+    <div className="card mt-4 p-10 text-center">
+      <div className="bg-ombre animate-drift mx-auto mb-3 h-10 w-10 rounded-full" />
+      <p className="text-sm text-muted">{text}</p>
+    </div>
+  );
+}

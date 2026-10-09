@@ -48,10 +48,14 @@ export async function POST(req: Request) {
   if (call.event !== "call_postprocessing") return NextResponse.json({ ok: true, ignored: call.event });
 
   const stub = await db().getCallByVaaniId(call.callId);
+  // Prefer the call_started time, but only if it is consistent with timestamp - duration
+  // (a stub from a retried or replayed event must not move the call to another day).
+  const stubStart = stub?.started_at ? new Date(stub.started_at) : null;
+  const startedAt = stubStart && Math.abs(stubStart.getTime() - call.startedAt.getTime()) < 30 * 60_000 ? stubStart : call.startedAt;
   const input: CallInput = {
     sourceId: call.callId,
     channel: "phone",
-    startedAt: stub?.started_at ? new Date(stub.started_at) : call.startedAt,
+    startedAt,
     durationSec: call.durationSec,
     transcript: call.transcript,
     recordingUrl: call.recordingUrl,

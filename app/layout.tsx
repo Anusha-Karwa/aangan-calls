@@ -10,7 +10,7 @@ export const metadata: Metadata = {
   description: "Every call, qualified and prepped for the designer.",
 };
 
-export const viewport: Viewport = { themeColor: "#0d0716" };
+export const viewport: Viewport = { themeColor: "#fbf8ff" };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

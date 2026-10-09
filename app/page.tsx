@@ -1,56 +1,65 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { monthKey, monthStats } from "@/lib/stats";
-import { formatDate, formatIst, toIst } from "@/lib/time";
-import { effectiveStatus, type CallRow, type CallStatus } from "@/lib/types";
-import { Flags, Score, STATUS_STYLE, StatusPill, Tile, VideoBackdrop } from "@/components/ui";
+import { groupPeople, type Person } from "@/lib/people";
+import { inMonth, monthKey, monthStats } from "@/lib/stats";
+import { formatIst, toIst } from "@/lib/time";
+import type { CallStatus } from "@/lib/types";
+import { STATUS_STYLE, VideoBackdrop } from "@/components/ui";
+import { CountUp, HeroPins, PeopleBoard, type Pin } from "@/components/interactive";
 import { TopNav } from "@/components/nav";
-import { markContacted } from "./actions";
 
 export const dynamic = "force-dynamic";
 
-type Search = { view?: string; status?: string; q?: string; from?: string; to?: string; month?: string };
+type Search = { view?: string; status?: string; q?: string; month?: string };
 const VIEWS = [
-  { key: "all", label: "All calls" },
+  { key: "all", label: "All callers" },
   { key: "upcoming", label: "Upcoming consultations" },
   { key: "reengage", label: "Re-engage" },
-];
+] as const;
 const STATUSES: CallStatus[] = ["qualified", "borderline", "unqualified", "escalated", "incomplete"];
-
-function filterRows(rows: CallRow[], s: Search): CallRow[] {
-  const q = (s.q ?? "").toLowerCase().trim();
-  const qDigits = q.replace(/\D/g, "");
-  return rows.filter((r) => {
-    if (s.status && effectiveStatus(r) !== s.status) return false;
-    const day = toIst(new Date(r.started_at ?? r.created_at)).toISOString().slice(0, 10);
-    if (s.from && day < s.from) return false;
-    if (s.to && day > s.to) return false;
-    if (q) {
-      const name = (r.caller_name ?? "").toLowerCase();
-      const phone = (r.phone ?? "").replace(/\D/g, "");
-      if (!name.includes(q) && !(qDigits.length >= 3 && phone.includes(qDigits))) return false;
-    }
-    return true;
-  });
-}
 
 function greeting(): string {
   const h = toIst(new Date()).getUTCHours();
   return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
 }
-
 function monthLabel(m: string): string {
+  if (m === "all") return "All time";
   return new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(m + "-01T00:00:00Z"));
+}
+function search(people: Person[], s: Search): Person[] {
+  const q = (s.q ?? "").toLowerCase().trim();
+  const qd = q.replace(/\D/g, "");
+  return people.filter((p) => {
+    if (s.status && p.latest.status !== s.status) return false;
+    if (!q) return true;
+    return (p.name ?? "").toLowerCase().includes(q) || (qd.length >= 3 && (p.phone ?? "").replace(/\D/g, "").includes(qd)) || (p.latest.location_area ?? "").toLowerCase().includes(q);
+  });
 }
 
 export default async function Dashboard({ searchParams }: { searchParams: Search }) {
-  const view = searchParams.view ?? "all";
-  const rows = await db().listCalls({ limit: 1000 });
+  const view = (VIEWS.find((v) => v.key === searchParams.view)?.key ?? "all") as "all" | "upcoming" | "reengage";
+  const all = await db().listCalls({ limit: 2000 });
   const month = searchParams.month ?? monthKey(new Date());
-  const st = monthStats(rows, month);
-  const upcomingCount = rows.filter((r) => r.booking_start && Date.parse(r.booking_start) >= Date.now() && r.booking_status !== "cancelled").length;
-  const warmCount = rows.filter((r) => effectiveStatus(r) === "unqualified" && r.reengage_rating === "warm" && !r.reengaged_at).length;
+  const rows = inMonth(all, month);
+  const monthPeople = groupPeople(rows);
+  const st = monthStats(rows, monthPeople);
+
+  // Upcoming + re-engage are not month-bound: they're about what to do next.
+  const everyone = groupPeople(all);
+  const listPeople = view === "all" ? search(monthPeople, searchParams) : everyone;
+  const next = everyone
+    .flatMap((p) => p.calls.filter((c) => c.booking_start && Date.parse(c.booking_start) > Date.now() && c.booking_status !== "cancelled").map((c) => ({ p, c })))
+    .sort((a, b) => a.c.booking_start!.localeCompare(b.c.booking_start!))[0];
+  const warm = everyone.filter((p) => p.latest.status === "unqualified" && p.latest.reengage_rating === "warm" && !p.latest.reengaged_at).length;
+  const months = Array.from(new Set([monthKey(new Date()), ...all.map((r) => monthKey(r.started_at ?? r.created_at))])).sort().reverse();
+
+  const pins: Pin[] = [
+    { x: 66, y: 22, title: "Next consultation", value: next ? `${next.p.name ?? next.p.phone} · ${formatIst(next.c.booking_start)}` : "None booked yet", href: "/?view=upcoming" },
+    { x: 84, y: 50, title: `Qualified · ${monthLabel(month)}`, value: `${st.byStatus.qualified} of ${st.people} callers`, href: `/?month=${month}&status=qualified` },
+    { x: 70, y: 70, title: "Warm leads", value: warm ? `${warm} to re-engage` : "All caught up", href: "/?view=reengage" },
+    { x: 90, y: 20, title: "Asked about price", value: `${st.askedPricePct}% · never quoted`, href: `/?month=${month}` },
+  ];
 
   const href = (patch: Partial<Search>) => {
     const p = new URLSearchParams(Object.entries({ ...searchParams, ...patch }).filter(([, v]) => v) as [string, string][]);
@@ -60,236 +69,100 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
   return (
     <>
       <TopNav />
-      <main className="mx-auto max-w-7xl px-4 pb-16">
-        {/* Hero */}
-        <section className="relative mt-5 overflow-hidden rounded-3xl border border-white/10">
+      <main className="mx-auto max-w-7xl px-4 pb-20">
+        {/* Hero: video + Pinterest-style pins */}
+        <section className="relative mt-5 overflow-hidden rounded-[28px] shadow-[0_30px_60px_-30px_rgba(91,33,182,0.45)]">
           <VideoBackdrop src={env("HERO_VIDEO_URL")} />
-          <div className="relative z-10 flex min-h-[300px] flex-col justify-end gap-4 p-6 pb-24 sm:p-10 sm:pb-24 md:flex-row md:items-end md:justify-between">
-            <div>
-              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-white/70">{monthLabel(month)}</div>
-              <h1 className="mt-2 font-display text-4xl font-semibold leading-tight sm:text-5xl">
-                {greeting()}, <span className="text-ombre">designer.</span>
+          <HeroPins pins={pins} />
+          <div className="relative z-[5] flex min-h-[340px] flex-col justify-end p-6 pb-24 sm:p-10 sm:pb-24">
+            <div className="max-w-xl animate-rise">
+              <span className="inline-flex items-center gap-2 rounded-full bg-white/85 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-violet-700 shadow-sm backdrop-blur">
+                <span className="bg-ombre h-1.5 w-1.5 rounded-full" />{monthLabel(month)}
+              </span>
+              <h1 className="mt-3 font-display text-4xl font-semibold leading-tight text-white drop-shadow-sm sm:text-6xl">
+                {greeting()}, <span className="bg-gradient-to-r from-violet-200 via-fuchsia-200 to-orange-200 bg-clip-text text-transparent">designer.</span>
               </h1>
-              <p className="mt-2 max-w-lg text-sm text-white/75">
-                {upcomingCount ? `${upcomingCount} consultation${upcomingCount > 1 ? "s" : ""} coming up` : "No consultations booked yet"}
-                {warmCount ? ` · ${warmCount} warm lead${warmCount > 1 ? "s" : ""} to re-engage` : ""}.
+              <p className="mt-2 text-sm font-medium text-white/90 sm:text-base">
+                {st.people} caller{st.people === 1 ? "" : "s"} this period · {st.booked} consultation{st.booked === 1 ? "" : "s"} booked
               </p>
             </div>
-            <form className="flex items-center gap-2">
-              <input type="hidden" name="view" value={view} />
-              <input aria-label="Month" type="month" name="month" defaultValue={month} className="field bg-plum-950/50" />
-              <button className="btn-ghost bg-plum-950/40">Show</button>
-            </form>
           </div>
         </section>
 
-        {/* KPI tiles overlap the hero */}
-        <section className="relative z-20 -mt-16 grid grid-cols-2 gap-3 px-2 sm:px-6 lg:grid-cols-5">
-          <Tile label="Calls" value={st.calls} sub={`${st.afterHoursPct}% after hours`} accent />
-          <Tile label="Qualified" value={`${st.byStatus.qualified}`} sub={`+${st.byStatus.borderline} borderline · ${st.byStatus.escalated} escalated`} />
-          <Tile label="Booked" value={st.booked} sub={`${st.bookingRate}% booking rate`} />
-          <Tile label="Cost" value={`₹${st.totalCost.toLocaleString("en-IN")}`} sub={`${st.avgMinutes} min avg · ${st.costPerBooking !== null ? `₹${st.costPerBooking}/booking` : "no bookings yet"}`} />
-          <Tile label="Asked price" value={`${st.askedPricePct}%`} sub="no number ever quoted" />
+        {/* KPI tiles */}
+        <section className="relative z-20 -mt-14 grid grid-cols-2 gap-3 px-2 sm:px-6 lg:grid-cols-5">
+          {[
+            { label: "Callers", value: <CountUp value={st.people} />, sub: `${st.calls} calls · ${st.afterHoursPct}% after hours` },
+            { label: "Qualified", value: <CountUp value={st.byStatus.qualified} />, sub: `+${st.byStatus.borderline} borderline · ${st.byStatus.escalated} escalated` },
+            { label: "Booked", value: <CountUp value={st.booked} />, sub: `${st.bookingRate}% booking rate` },
+            { label: "Call cost", value: <CountUp value={st.totalCost} prefix="₹" />, sub: `${st.avgMinutes} min avg${st.costPerBooking !== null ? ` · ₹${st.costPerBooking}/booking` : ""}` },
+            { label: "Asked price", value: <CountUp value={st.askedPricePct} suffix="%" />, sub: "no number ever quoted" },
+          ].map((t, i) => (
+            <div key={t.label} className="card card-hover animate-rise p-4" style={{ animationDelay: `${i * 70}ms` }}>
+              <div className="text-[11px] font-bold uppercase tracking-wider text-muted">{t.label}</div>
+              <div className="text-ombre mt-1 font-display text-4xl font-semibold tabular-nums">{t.value}</div>
+              <div className="mt-1 text-xs text-muted">{t.sub}</div>
+            </div>
+          ))}
         </section>
 
-        {/* Status mix */}
-        <section className="mt-5">
-          <div className="glass p-5">
-            <div className="flex items-baseline justify-between">
-              <h2 className="text-sm font-semibold">Status mix</h2>
-              <span className="text-xs text-white/50">{st.calls} calls in {monthLabel(month)}</span>
-            </div>
-            <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-white/5">
-              {STATUSES.map((s) =>
-                st.byStatus[s] ? <div key={s} className={STATUS_STYLE[s].bar} style={{ width: `${(st.byStatus[s] / Math.max(st.calls, 1)) * 100}%` }} title={`${s}: ${st.byStatus[s]}`} /> : null,
-              )}
-            </div>
-            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
-              {STATUSES.map((s) => (
-                <Link key={s} href={href({ view: "all", status: s })} className="flex items-center gap-2 text-xs text-white/70 hover:text-white">
-                  <span className={`h-2 w-2 rounded-full ${STATUS_STYLE[s].dot}`} />
-                  <span className="capitalize">{s}</span>
-                  <span className="font-semibold text-white">{st.byStatus[s]}</span>
-                </Link>
-              ))}
-            </div>
+        {/* Status mix: click a segment to filter */}
+        <section className="card mt-5 p-5">
+          <div className="flex flex-wrap items-baseline justify-between gap-2">
+            <h2 className="text-sm font-bold text-ink">Who called · {monthLabel(month)}</h2>
+            <span className="text-xs text-muted">Click a colour to filter</span>
+          </div>
+          <div className="mt-4 flex h-4 overflow-hidden rounded-full bg-violet-50">
+            {STATUSES.map((s) =>
+              st.byStatus[s] ? (
+                <Link key={s} href={href({ view: "all", status: s })} title={`${STATUS_STYLE[s].label}: ${st.byStatus[s]}`}
+                  className={`${STATUS_STYLE[s].bar} transition-all hover:brightness-110 hover:saturate-150`} style={{ width: `${(st.byStatus[s] / Math.max(st.people, 1)) * 100}%` }} />
+              ) : null,
+            )}
+          </div>
+          <div className="mt-3 flex flex-wrap gap-2">
+            {STATUSES.map((s) => (
+              <Link key={s} href={searchParams.status === s ? href({ status: undefined }) : href({ view: "all", status: s })}
+                className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold transition ${searchParams.status === s ? "bg-ink text-white" : "bg-violet-50 text-ink hover:bg-violet-100"}`}>
+                <span className={`h-2 w-2 rounded-full ${STATUS_STYLE[s].dot}`} />
+                {STATUS_STYLE[s].label}
+                <span className="opacity-70">{st.byStatus[s]}</span>
+              </Link>
+            ))}
           </div>
         </section>
 
         {/* Tabs */}
-        <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03] p-1 text-sm">
+        <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-violet-100 bg-white/70 p-1 text-sm shadow-sm backdrop-blur">
           {VIEWS.map((v) => (
-            <Link
-              key={v.key}
-              href={href({ view: v.key })}
-              className={`whitespace-nowrap rounded-xl px-4 py-2 font-medium transition ${view === v.key ? "bg-ombre text-white shadow-[0_8px_24px_-8px_rgba(217,70,239,0.8)]" : "text-white/60 hover:bg-white/5 hover:text-white"}`}
-            >
+            <Link key={v.key} href={href({ view: v.key, status: undefined })}
+              className={`whitespace-nowrap rounded-xl px-4 py-2 font-semibold transition ${view === v.key ? "bg-ombre text-white shadow-[0_8px_20px_-8px_rgba(192,38,211,0.8)]" : "text-muted hover:bg-violet-50 hover:text-ink"}`}>
               {v.label}
-              {v.key === "upcoming" && upcomingCount > 0 && <span className="ml-2 rounded-full bg-white/20 px-1.5 text-[11px]">{upcomingCount}</span>}
-              {v.key === "reengage" && warmCount > 0 && <span className="ml-2 rounded-full bg-white/20 px-1.5 text-[11px]">{warmCount}</span>}
+              {v.key === "reengage" && warm > 0 && <span className="ml-2 rounded-full bg-orange-500 px-1.5 text-[11px] text-white">{warm}</span>}
             </Link>
           ))}
         </nav>
 
-        {view === "upcoming" ? <Upcoming rows={rows} /> : view === "reengage" ? <Reengage rows={rows} /> : <AllCalls rows={filterRows(rows, searchParams)} s={searchParams} />}
+        {view === "all" && (
+          <form className="mt-4 flex flex-wrap items-center gap-2">
+            <input type="hidden" name="view" value="all" />
+            <input name="q" defaultValue={searchParams.q} placeholder="Search name, phone or area…" className="field w-64" />
+            <select name="month" defaultValue={month} className="field">
+              <option value="all">All time</option>
+              {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
+            </select>
+            <select name="status" defaultValue={searchParams.status ?? ""} className="field">
+              <option value="">Every status</option>
+              {STATUSES.map((s) => <option key={s} value={s}>{STATUS_STYLE[s].label}</option>)}
+            </select>
+            <button className="btn-ombre">Apply</button>
+            {(searchParams.q || searchParams.status || searchParams.month) && <Link href="/" className="px-2 text-sm font-semibold text-muted hover:text-ink">Reset</Link>}
+            <span className="ml-auto text-xs text-muted">{listPeople.length} caller{listPeople.length === 1 ? "" : "s"} · click anyone for details</span>
+          </form>
+        )}
+
+        <PeopleBoard view={view} people={listPeople} />
       </main>
     </>
-  );
-}
-
-function AllCalls({ rows, s }: { rows: CallRow[]; s: Search }) {
-  return (
-    <>
-      <form className="mt-4 flex flex-wrap items-center gap-2">
-        <input type="hidden" name="view" value="all" />
-        <input name="q" defaultValue={s.q} placeholder="Search name or phone…" className="field w-56" />
-        <select name="status" defaultValue={s.status ?? ""} className="field">
-          <option value="">All statuses</option>
-          {STATUSES.map((x) => <option key={x} value={x}>{x}</option>)}
-        </select>
-        <input aria-label="From" type="date" name="from" defaultValue={s.from} className="field" />
-        <span className="text-white/40">→</span>
-        <input aria-label="To" type="date" name="to" defaultValue={s.to} className="field" />
-        <button className="btn-ombre">Filter</button>
-        <Link href="/" className="px-2 text-sm text-white/50 hover:text-white">Clear</Link>
-      </form>
-
-      {rows.length === 0 ? (
-        <Empty text="No calls match. Test calls appear here a few seconds after they end." />
-      ) : (
-        <>
-          <div className="glass mt-4 hidden overflow-hidden md:block">
-            <table className="w-full text-sm">
-              <thead className="text-left text-[11px] uppercase tracking-wider text-white/45">
-                <tr className="border-b border-white/5">
-                  <th className="px-4 py-3 font-semibold">When</th>
-                  <th className="px-4 py-3 font-semibold">Caller</th>
-                  <th className="px-4 py-3 font-semibold">Area</th>
-                  <th className="px-4 py-3 text-right font-semibold">Score</th>
-                  <th className="px-4 py-3 font-semibold">Status</th>
-                  <th className="px-4 py-3 font-semibold">Consultation</th>
-                  <th className="px-4 py-3 font-semibold">Flags</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="group border-b border-white/5 transition last:border-0 hover:bg-gradient-to-r hover:from-violet-600/15 hover:via-fuchsia-600/10 hover:to-orange-500/15">
-                    <td className="whitespace-nowrap px-4 py-3 text-white/55">
-                      <Link href={`/calls/${r.id}`} className="block">{formatIst(r.started_at ?? r.created_at)}</Link>
-                    </td>
-                    <td className="px-4 py-3">
-                      <Link href={`/calls/${r.id}`} className="block font-semibold text-white group-hover:text-ombre">{r.caller_name ?? r.phone ?? "Unknown caller"}</Link>
-                      {r.caller_name && r.phone && <span className="text-xs text-white/40">{r.phone}</span>}
-                    </td>
-                    <td className="px-4 py-3 text-white/80">{r.location_area ?? <span className="text-white/30">–</span>}</td>
-                    <td className="px-4 py-3 text-right text-base"><Score score={r.score} /></td>
-                    <td className="px-4 py-3"><StatusPill status={effectiveStatus(r)} overridden={Boolean(r.status_override)} /></td>
-                    <td className="whitespace-nowrap px-4 py-3 text-white/80">{r.booking_start ? formatIst(r.booking_start) : <span className="text-white/30">–</span>}</td>
-                    <td className="px-4 py-3"><Flags flags={r.flags} /></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          <ul className="mt-4 space-y-2 md:hidden">
-            {rows.map((r) => (
-              <li key={r.id}>
-                <Link href={`/calls/${r.id}`} className="glass block p-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <span className="font-semibold">{r.caller_name ?? r.phone ?? "Unknown caller"}</span>
-                    <StatusPill status={effectiveStatus(r)} overridden={Boolean(r.status_override)} />
-                  </div>
-                  <div className="mt-1 flex items-center gap-2 text-xs text-white/55">
-                    <span>{formatIst(r.started_at ?? r.created_at)}</span>·<span>{r.location_area ?? "area ?"}</span>·<span>score <Score score={r.score} /></span>
-                  </div>
-                  {r.booking_start && <div className="mt-2 text-xs font-medium text-orange-200">📅 {formatIst(r.booking_start)}</div>}
-                  <div className="mt-2"><Flags flags={r.flags} /></div>
-                </Link>
-              </li>
-            ))}
-          </ul>
-        </>
-      )}
-    </>
-  );
-}
-
-function Upcoming({ rows }: { rows: CallRow[] }) {
-  const now = Date.now() - 2 * 3600_000;
-  const list = rows
-    .filter((r) => r.booking_start && Date.parse(r.booking_start) >= now && r.booking_status !== "cancelled")
-    .sort((a, b) => a.booking_start!.localeCompare(b.booking_start!));
-  if (!list.length) return <Empty text="No upcoming consultations yet. Calls the agent books show up here, soonest first." />;
-  return (
-    <ul className="mt-4 grid gap-3 md:grid-cols-2">
-      {list.map((r) => {
-        const d = new Date(r.booking_start!);
-        return (
-          <li key={r.id}>
-            <Link href={`/calls/${r.id}`} className="glass ombre-border flex gap-4 p-4 transition hover:bg-white/[0.07]">
-              <div className="bg-ombre grid w-16 shrink-0 place-items-center rounded-xl py-2 text-center text-white">
-                <div className="text-[10px] font-semibold uppercase tracking-wider">{new Intl.DateTimeFormat("en-IN", { month: "short", timeZone: "Asia/Kolkata" }).format(d)}</div>
-                <div className="font-display text-2xl font-semibold leading-none">{new Intl.DateTimeFormat("en-IN", { day: "numeric", timeZone: "Asia/Kolkata" }).format(d)}</div>
-                <div className="text-[10px]">{formatIst(d, { date: false }).replace(" IST", "")}</div>
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center justify-between gap-2">
-                  <span className="truncate font-semibold">{r.caller_name ?? r.phone}</span>
-                  <StatusPill status={effectiveStatus(r)} />
-                </div>
-                <div className="mt-1 text-sm text-white/65">
-                  {[r.property, r.location_area, r.carpet_sqft ? `${r.carpet_sqft} sq ft` : null].filter(Boolean).join(" · ")}
-                </div>
-                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
-                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-medium">{r.booking_type === "site_visit" ? "🏠 Site visit" : r.booking_type === "studio" ? "🏛 Studio" : "Type ?"}</span>
-                  <Flags flags={r.flags} />
-                </div>
-              </div>
-            </Link>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function Reengage({ rows }: { rows: CallRow[] }) {
-  const list = rows
-    .filter((r) => effectiveStatus(r) === "unqualified" && r.reengage_rating === "warm" && !r.reengaged_at)
-    .sort((a, b) => (a.reengage_date ?? "9999").localeCompare(b.reengage_date ?? "9999"));
-  const today = toIst(new Date()).toISOString().slice(0, 10);
-  if (!list.length) return <Empty text="No warm leads waiting. Unqualified calls with a short timeline or 'just exploring' land here." />;
-  return (
-    <ul className="mt-4 space-y-2">
-      {list.map((r) => {
-        const due = r.reengage_date && r.reengage_date <= today;
-        return (
-          <li key={r.id} className={`glass flex flex-wrap items-center gap-x-4 gap-y-2 p-4 ${due ? "ombre-border" : ""}`}>
-            <span className="w-28">
-              <span className={`block text-sm font-semibold ${due ? "text-ombre" : "text-white/80"}`}>{formatDate(r.reengage_date)}</span>
-              {due && <span className="text-[11px] font-semibold uppercase tracking-wider text-orange-300">Due now</span>}
-            </span>
-            <Link href={`/calls/${r.id}`} className="min-w-0 flex-1">
-              <div className="font-semibold">{r.caller_name ?? r.phone ?? "Unknown caller"}</div>
-              <div className="truncate text-sm text-white/55">{r.decline_reason}</div>
-            </Link>
-            {r.phone && <a href={`tel:${r.phone}`} className="text-sm font-medium text-orange-200 hover:text-orange-100">{r.phone}</a>}
-            <form action={markContacted}>
-              <input type="hidden" name="id" value={r.id} />
-              <button className="btn-ghost">Mark contacted</button>
-            </form>
-          </li>
-        );
-      })}
-    </ul>
-  );
-}
-
-function Empty({ text }: { text: string }) {
-  return (
-    <div className="glass mt-4 p-10 text-center">
-      <div className="bg-ombre mx-auto mb-3 h-10 w-10 rounded-full opacity-80 blur-[1px]" />
-      <p className="text-sm text-white/60">{text}</p>
-    </div>
   );
 }

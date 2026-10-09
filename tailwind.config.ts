@@ -9,7 +9,9 @@ const config: Config = {
         display: ["var(--font-display)", "Georgia", "serif"],
       },
       colors: {
-        plum: { 950: "#0d0716", 900: "#160b26", 800: "#21123a" },
+        ink: "#1d1430",
+        muted: "#6b6280",
+        lilac: { 50: "#fbf8ff", 100: "#f3edff" },
       },
     },
   },

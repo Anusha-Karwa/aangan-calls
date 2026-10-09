@@ -3,54 +3,55 @@
 @tailwind utilities;
 
 :root {
-  --plum-950: #0d0716;
-  --plum-900: #160b26;
-  --violet: #8b5cf6;
-  --fuchsia: #d946ef;
-  --orange: #f97316;
-  --amber: #fbbf24;
-  --ombre: linear-gradient(110deg, #7c3aed 0%, #c026d3 38%, #f43f5e 66%, #f97316 100%);
-  --ombre-soft: linear-gradient(110deg, rgba(124, 58, 237, 0.55) 0%, rgba(192, 38, 211, 0.4) 40%, rgba(244, 63, 94, 0.35) 65%, rgba(249, 115, 22, 0.55) 100%);
+  --ink: #1d1430;
+  --ombre: linear-gradient(110deg, #7c3aed 0%, #c026d3 38%, #f43f5e 68%, #f97316 100%);
+  --ombre-soft: linear-gradient(110deg, rgba(124, 58, 237, 0.45) 0%, rgba(192, 38, 211, 0.3) 40%, rgba(244, 63, 94, 0.25) 65%, rgba(249, 115, 22, 0.45) 100%);
 }
 
 html {
-  color-scheme: dark;
+  color-scheme: light;
 }
 
 body {
-  background: var(--plum-950);
-  color: #f5f1fa;
+  background: #fbf8ff;
+  color: var(--ink);
   min-height: 100vh;
 }
 
-/* Ambient ombré glow behind every page */
+/* Soft purple + orange glow behind every page */
 .ambient::before,
 .ambient::after {
   content: "";
   position: fixed;
   z-index: 0;
-  width: 60vmax;
-  height: 60vmax;
+  width: 55vmax;
+  height: 55vmax;
   border-radius: 9999px;
-  filter: blur(120px);
-  opacity: 0.28;
+  filter: blur(110px);
+  opacity: 0.35;
   pointer-events: none;
 }
 .ambient::before {
-  background: #7c3aed;
-  top: -25vmax;
-  left: -20vmax;
+  background: #ddd6fe;
+  top: -22vmax;
+  left: -18vmax;
 }
 .ambient::after {
-  background: #f97316;
-  bottom: -30vmax;
-  right: -20vmax;
+  background: #fed7aa;
+  bottom: -28vmax;
+  right: -18vmax;
 }
 
 @layer components {
-  .glass {
-    @apply rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+  .card {
+    @apply rounded-2xl border border-violet-100/80 bg-white/80 backdrop-blur-xl;
+    box-shadow: 0 1px 2px rgba(29, 20, 48, 0.04), 0 18px 40px -24px rgba(91, 33, 182, 0.25);
+  }
+  .card-hover {
+    @apply transition duration-300 hover:-translate-y-0.5;
+  }
+  .card-hover:hover {
+    box-shadow: 0 1px 2px rgba(29, 20, 48, 0.05), 0 26px 50px -22px rgba(192, 38, 211, 0.35);
   }
   .text-ombre {
     background: var(--ombre);
@@ -62,22 +63,21 @@ body {
     background: var(--ombre);
   }
   .btn-ombre {
-    @apply rounded-xl px-4 py-2 text-sm font-semibold text-white transition;
+    @apply rounded-xl px-4 py-2 text-sm font-semibold text-white transition active:scale-[0.98];
     background: var(--ombre);
-    background-size: 160% 100%;
-    box-shadow: 0 10px 30px -10px rgba(217, 70, 239, 0.7);
+    background-size: 170% 100%;
+    box-shadow: 0 10px 26px -12px rgba(192, 38, 211, 0.75);
   }
   .btn-ombre:hover {
     background-position: 100% 0;
-    box-shadow: 0 12px 34px -8px rgba(249, 115, 22, 0.75);
+    box-shadow: 0 14px 30px -10px rgba(249, 115, 22, 0.7);
   }
-  .btn-ghost {
-    @apply rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/30 hover:bg-white/10;
+  .btn-soft {
+    @apply rounded-xl border border-violet-200 bg-white px-4 py-2 text-sm font-semibold text-violet-800 transition hover:border-violet-300 hover:bg-violet-50 active:scale-[0.98];
   }
   .field {
-    @apply rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/40 outline-none transition focus:border-fuchsia-400/70 focus:bg-white/10;
+    @apply rounded-xl border border-violet-100 bg-white px-3 py-2 text-sm text-[color:var(--ink)] placeholder-slate-400 outline-none transition focus:border-fuchsia-400 focus:ring-4 focus:ring-fuchsia-100;
   }
-  /* Thin gradient border via a mask */
   .ombre-border {
     position: relative;
   }
@@ -86,17 +86,16 @@ body {
     position: absolute;
     inset: 0;
     border-radius: inherit;
-    padding: 1px;
+    padding: 1.5px;
     background: var(--ombre);
     -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
     -webkit-mask-composite: xor;
     mask-composite: exclude;
     pointer-events: none;
-    opacity: 0.8;
   }
 }
 
-/* Background video + ombré wash */
+/* Background video + ombré wash (hero + login) */
 .video-bg {
   position: absolute;
   inset: 0;
@@ -108,37 +107,66 @@ body {
   position: absolute;
   inset: 0;
   background: var(--ombre-soft);
-  mix-blend-mode: color;
+  mix-blend-mode: soft-light;
 }
 .video-scrim {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(13, 7, 22, 0.35) 0%, rgba(13, 7, 22, 0.55) 55%, rgba(13, 7, 22, 0.95) 100%);
+  background: linear-gradient(180deg, rgba(29, 20, 48, 0.05) 0%, rgba(29, 20, 48, 0.25) 55%, rgba(29, 20, 48, 0.55) 100%);
+}
+.video-scrim-light {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(251, 248, 255, 0.15) 0%, rgba(251, 248, 255, 0.55) 70%, rgba(251, 248, 255, 0.9) 100%);
 }
 
+/* Pin + label pop (Pinterest-style tags) */
+@keyframes ping-soft {
+  0% { transform: scale(1); opacity: 0.7; }
+  80%, 100% { transform: scale(2.4); opacity: 0; }
+}
+.pin-ring {
+  animation: ping-soft 2s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+@keyframes pop {
+  0% { opacity: 0; transform: translateY(6px) scale(0.92); }
+  60% { opacity: 1; transform: translateY(-2px) scale(1.02); }
+  100% { opacity: 1; transform: translateY(0) scale(1); }
+}
+.animate-pop {
+  animation: pop 0.38s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-rise {
+  animation: rise 0.6s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
 @keyframes drift {
-  0%,
-  100% {
-    background-position: 0% 50%;
-  }
-  50% {
-    background-position: 100% 50%;
-  }
+  0%, 100% { background-position: 0% 50%; }
+  50% { background-position: 100% 50%; }
 }
 .animate-drift {
   background-size: 200% 200%;
   animation: drift 14s ease-in-out infinite;
 }
-
-@media (prefers-reduced-motion: reduce) {
-  .video-bg {
-    display: none;
-  }
-  .animate-drift {
-    animation: none;
-  }
+@keyframes slide-in {
+  from { transform: translateX(100%); }
+  to { transform: translateX(0); }
+}
+.animate-slide-in {
+  animation: slide-in 0.32s cubic-bezier(0.2, 0.8, 0.2, 1) both;
+}
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.animate-fade-in {
+  animation: fade-in 0.25s ease both;
 }
 
-audio {
-  color-scheme: dark;
+@media (prefers-reduced-motion: reduce) {
+  .video-bg { display: none; }
+  .animate-drift, .pin-ring, .animate-pop, .animate-rise, .animate-slide-in { animation: none; }
 }
