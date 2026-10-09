@@ -1,11 +1,10 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
 import { env } from "@/lib/env";
-import { connectionStatus } from "@/lib/status";
 import { monthKey, monthStats } from "@/lib/stats";
 import { formatDate, formatIst, toIst } from "@/lib/time";
 import { effectiveStatus, type CallRow, type CallStatus } from "@/lib/types";
-import { ConnectionList, Flags, Score, STATUS_STYLE, StatusPill, Tile, VideoBackdrop } from "@/components/ui";
+import { Flags, Score, STATUS_STYLE, StatusPill, Tile, VideoBackdrop } from "@/components/ui";
 import { TopNav } from "@/components/nav";
 import { markContacted } from "./actions";
 
@@ -47,7 +46,7 @@ function monthLabel(m: string): string {
 
 export default async function Dashboard({ searchParams }: { searchParams: Search }) {
   const view = searchParams.view ?? "all";
-  const [rows, connections] = await Promise.all([db().listCalls({ limit: 1000 }), connectionStatus()]);
+  const rows = await db().listCalls({ limit: 1000 });
   const month = searchParams.month ?? monthKey(new Date());
   const st = monthStats(rows, month);
   const upcomingCount = rows.filter((r) => r.booking_start && Date.parse(r.booking_start) >= Date.now() && r.booking_status !== "cancelled").length;
@@ -60,7 +59,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
 
   return (
     <>
-      <TopNav connections={connections} />
+      <TopNav />
       <main className="mx-auto max-w-7xl px-4 pb-16">
         {/* Hero */}
         <section className="relative mt-5 overflow-hidden rounded-3xl border border-white/10">
@@ -93,9 +92,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
           <Tile label="Asked price" value={`${st.askedPricePct}%`} sub="no number ever quoted" />
         </section>
 
-        {/* Status mix + connections */}
-        <section className="mt-5 grid gap-3 lg:grid-cols-3">
-          <div className="glass p-5 lg:col-span-2">
+        {/* Status mix */}
+        <section className="mt-5">
+          <div className="glass p-5">
             <div className="flex items-baseline justify-between">
               <h2 className="text-sm font-semibold">Status mix</h2>
               <span className="text-xs text-white/50">{st.calls} calls in {monthLabel(month)}</span>
@@ -114,10 +113,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
                 </Link>
               ))}
             </div>
-          </div>
-          <div className="glass p-5">
-            <h2 className="text-sm font-semibold">Connections</h2>
-            <div className="mt-2"><ConnectionList items={connections} /></div>
           </div>
         </section>
 

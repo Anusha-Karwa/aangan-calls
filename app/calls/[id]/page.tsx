@@ -1,7 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { db } from "@/lib/db";
-import { connectionStatus } from "@/lib/status";
 import { formatDate, formatIst } from "@/lib/time";
 import { effectiveStatus } from "@/lib/types";
 import { Flags, ScoreRing, StatusPill } from "@/components/ui";
@@ -20,7 +19,7 @@ const DM: Record<string, string> = {
 };
 
 export default async function CallPage({ params }: { params: { id: string } }) {
-  const [c, connections] = await Promise.all([db().getCall(params.id), connectionStatus()]);
+  const c = await db().getCall(params.id);
   if (!c) notFound();
   const events = await db().listEvents(c.id);
   const status = effectiveStatus(c);
@@ -43,7 +42,7 @@ export default async function CallPage({ params }: { params: { id: string } }) {
 
   return (
     <>
-      <TopNav connections={connections} />
+      <TopNav />
       <main className="mx-auto max-w-6xl px-4 pb-16 pt-5">
         <Link href="/" className="text-sm text-white/50 hover:text-white">← All calls</Link>
 
