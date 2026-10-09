@@ -36,6 +36,10 @@ Dashboard (/, /calls/[id]) → password-protected Next.js pages
 
 See **[SETUP.md](SETUP.md)** for every account, key and click.
 
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https%3A%2F%2Fgithub.com%2FAnusha-Karwa%2FAangan-Voice-Agent&project-name=aangan-calls&repository-name=aangan-calls&env=DATABASE_URL%2CGEMINI_API_KEY%2CRESEND_API_KEY%2CDESIGNER_EMAIL%2CCALCOM_API_KEY%2CHUBSPOT_TOKEN%2CDASHBOARD_PASSWORD&envDescription=Neon+Postgres+URL%2C+Gemini+key%2C+Resend+key%2C+the+email+you+log+into+Resend+with%2C+Cal.com+key%2C+HubSpot+private-app+token%2C+and+a+dashboard+password.&envLink=https%3A%2F%2Fgithub.com%2FAnusha-Karwa%2FAangan-Voice-Agent%2Fblob%2Fmain%2FSETUP.md)
+
+The button asks for the 7 secrets only. Non-secret settings (Cal.com event ID, HubSpot stage IDs, email sender) live in [config/defaults.json](config/defaults.json), and any env var with the same name overrides them. `APP_BASE_URL` defaults to the Vercel production URL. Add `VAANI_WEBHOOK_SECRET` after creating the Vaani webhook.
+
 ```bash
 npm install
 ```

@@ -1,9 +1,14 @@
 // Central place for configuration. Every integration checks `isLive(...)` and
 // falls back to mock / dry-run mode when its key is missing.
 
+import defaults from "@/config/defaults.json";
+
+/** Env var, else the committed non-secret default (config/defaults.json), else `fallback`. */
 export function env(name: string, fallback = ""): string {
   const v = process.env[name];
-  return v && v.trim() !== "" ? v.trim() : fallback;
+  if (v && v.trim() !== "") return v.trim();
+  const d = (defaults as Record<string, string>)[name];
+  return d !== undefined && !name.startsWith("_") ? d : fallback;
 }
 
 export const integrations = {
@@ -34,5 +39,7 @@ export function mockLog(integration: string, action: string, detail: unknown) {
 }
 
 export function appBaseUrl(): string {
-  return env("APP_BASE_URL", "http://localhost:3000").replace(/\/$/, "");
+  // On Vercel, fall back to the project's production domain (a Vercel system env var).
+  const vercel = process.env.VERCEL_PROJECT_PRODUCTION_URL ? `https://${process.env.VERCEL_PROJECT_PRODUCTION_URL}` : "";
+  return env("APP_BASE_URL", vercel || "http://localhost:3000").replace(/\/$/, "");
 }
