@@ -1,0 +1,12 @@
+{
+  "_note": "Non-secret settings for this deployment. An env var with the same name overrides each one. Secrets (API keys, tokens, DATABASE_URL, passwords) never go here.",
+  "CALCOM_EVENT_TYPE_ID": "7399507",
+  "CALCOM_EVENT_DURATION_MIN": "60",
+  "CALCOM_TIMEZONE": "Asia/Kolkata",
+  "EMAIL_FROM": "Aangan Studio <onboarding@resend.dev>",
+  "SEND_CALLER_CONFIRMATION": "false",
+  "HUBSPOT_PIPELINE": "default",
+  "HUBSPOT_STAGE_BOOKED": "4412778201",
+  "HUBSPOT_STAGE_QUALIFIED": "4412778200",
+  "VAANI_RATE_INR": "7"
+}
