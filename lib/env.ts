@@ -12,7 +12,7 @@ export function env(name: string, fallback = ""): string {
 }
 
 export const integrations = {
-  vaani: ["VAANI_API_KEY", "VAANI_AGENT_ID"],
+  // VAANI_API_KEY is optional and unused (Vaani has no prompt API), so it isn't listed here.
   vaaniWebhook: ["VAANI_WEBHOOK_SECRET"],
   gemini: ["GEMINI_API_KEY"],
   calcom: ["CALCOM_API_KEY"],

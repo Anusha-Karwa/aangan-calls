@@ -68,7 +68,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
 
       {mock.length > 0 && (
         <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          Mock mode for: {mock.join(", ")}. These integrations log instead of sending. See SETUP.md.
+          {mock.length === 1 && mock[0] === "vaaniWebhook"
+            ? "Vaani webhook secret not set yet: incoming calls are accepted without signature checks. Add VAANI_WEBHOOK_SECRET in Vercel (SETUP.md §3, V6)."
+            : `Not connected yet: ${mock.join(", ")}. These integrations log instead of sending. See SETUP.md.`}
         </p>
       )}
 
