@@ -1,3 +1,144 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  --plum-950: #0d0716;
+  --plum-900: #160b26;
+  --violet: #8b5cf6;
+  --fuchsia: #d946ef;
+  --orange: #f97316;
+  --amber: #fbbf24;
+  --ombre: linear-gradient(110deg, #7c3aed 0%, #c026d3 38%, #f43f5e 66%, #f97316 100%);
+  --ombre-soft: linear-gradient(110deg, rgba(124, 58, 237, 0.55) 0%, rgba(192, 38, 211, 0.4) 40%, rgba(244, 63, 94, 0.35) 65%, rgba(249, 115, 22, 0.55) 100%);
+}
+
+html {
+  color-scheme: dark;
+}
+
+body {
+  background: var(--plum-950);
+  color: #f5f1fa;
+  min-height: 100vh;
+}
+
+/* Ambient ombré glow behind every page */
+.ambient::before,
+.ambient::after {
+  content: "";
+  position: fixed;
+  z-index: 0;
+  width: 60vmax;
+  height: 60vmax;
+  border-radius: 9999px;
+  filter: blur(120px);
+  opacity: 0.28;
+  pointer-events: none;
+}
+.ambient::before {
+  background: #7c3aed;
+  top: -25vmax;
+  left: -20vmax;
+}
+.ambient::after {
+  background: #f97316;
+  bottom: -30vmax;
+  right: -20vmax;
+}
+
+@layer components {
+  .glass {
+    @apply rounded-2xl border border-white/10 bg-white/[0.04] backdrop-blur-xl;
+    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.06) inset, 0 20px 50px -20px rgba(0, 0, 0, 0.6);
+  }
+  .text-ombre {
+    background: var(--ombre);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .bg-ombre {
+    background: var(--ombre);
+  }
+  .btn-ombre {
+    @apply rounded-xl px-4 py-2 text-sm font-semibold text-white transition;
+    background: var(--ombre);
+    background-size: 160% 100%;
+    box-shadow: 0 10px 30px -10px rgba(217, 70, 239, 0.7);
+  }
+  .btn-ombre:hover {
+    background-position: 100% 0;
+    box-shadow: 0 12px 34px -8px rgba(249, 115, 22, 0.75);
+  }
+  .btn-ghost {
+    @apply rounded-xl border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-white/90 transition hover:border-white/30 hover:bg-white/10;
+  }
+  .field {
+    @apply rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-sm text-white placeholder-white/40 outline-none transition focus:border-fuchsia-400/70 focus:bg-white/10;
+  }
+  /* Thin gradient border via a mask */
+  .ombre-border {
+    position: relative;
+  }
+  .ombre-border::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    border-radius: inherit;
+    padding: 1px;
+    background: var(--ombre);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor;
+    mask-composite: exclude;
+    pointer-events: none;
+    opacity: 0.8;
+  }
+}
+
+/* Background video + ombré wash */
+.video-bg {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.video-wash {
+  position: absolute;
+  inset: 0;
+  background: var(--ombre-soft);
+  mix-blend-mode: color;
+}
+.video-scrim {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(13, 7, 22, 0.35) 0%, rgba(13, 7, 22, 0.55) 55%, rgba(13, 7, 22, 0.95) 100%);
+}
+
+@keyframes drift {
+  0%,
+  100% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+}
+.animate-drift {
+  background-size: 200% 200%;
+  animation: drift 14s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .video-bg {
+    display: none;
+  }
+  .animate-drift {
+    animation: none;
+  }
+}
+
+audio {
+  color-scheme: dark;
+}

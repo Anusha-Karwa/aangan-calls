@@ -4,20 +4,12 @@ const config: Config = {
   content: ["./app/**/*.{ts,tsx}", "./components/**/*.{ts,tsx}"],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        display: ["var(--font-display)", "Georgia", "serif"],
+      },
       colors: {
-        // Terracotta, for an "aangan" (courtyard) feel.
-        brand: {
-          50: "#fbf5f1",
-          100: "#f5e6dc",
-          300: "#e0a98a",
-          500: "#c4703f",
-          600: "#a95a2f",
-          700: "#8a4726",
-        },
-        ink: "#1f1a17",
-        muted: "#6b625c",
-        line: "#ebe4de",
-        paper: "#faf8f6",
+        plum: { 950: "#0d0716", 900: "#160b26", 800: "#21123a" },
       },
     },
   },

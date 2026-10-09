@@ -1,11 +1,13 @@
 import Link from "next/link";
 import { db } from "@/lib/db";
-import { integrationStatus } from "@/lib/env";
+import { env } from "@/lib/env";
+import { connectionStatus } from "@/lib/status";
 import { monthKey, monthStats } from "@/lib/stats";
 import { formatDate, formatIst, toIst } from "@/lib/time";
-import { effectiveStatus, type CallRow } from "@/lib/types";
-import { Flags, Score, StatusPill, Tile } from "@/components/ui";
-import { logout, markContacted } from "./actions";
+import { effectiveStatus, type CallRow, type CallStatus } from "@/lib/types";
+import { ConnectionList, Flags, Score, STATUS_STYLE, StatusPill, Tile, VideoBackdrop } from "@/components/ui";
+import { TopNav } from "@/components/nav";
+import { markContacted } from "./actions";
 
 export const dynamic = "force-dynamic";
 
@@ -15,6 +17,7 @@ const VIEWS = [
   { key: "upcoming", label: "Upcoming consultations" },
   { key: "reengage", label: "Re-engage" },
 ];
+const STATUSES: CallStatus[] = ["qualified", "borderline", "unqualified", "escalated", "incomplete"];
 
 function filterRows(rows: CallRow[], s: Search): CallRow[] {
   const q = (s.q ?? "").toLowerCase().trim();
@@ -33,12 +36,22 @@ function filterRows(rows: CallRow[], s: Search): CallRow[] {
   });
 }
 
+function greeting(): string {
+  const h = toIst(new Date()).getUTCHours();
+  return h < 12 ? "Good morning" : h < 17 ? "Good afternoon" : "Good evening";
+}
+
+function monthLabel(m: string): string {
+  return new Intl.DateTimeFormat("en-IN", { month: "long", year: "numeric", timeZone: "UTC" }).format(new Date(m + "-01T00:00:00Z"));
+}
+
 export default async function Dashboard({ searchParams }: { searchParams: Search }) {
   const view = searchParams.view ?? "all";
-  const rows = await db().listCalls({ limit: 1000 });
+  const [rows, connections] = await Promise.all([db().listCalls({ limit: 1000 }), connectionStatus()]);
   const month = searchParams.month ?? monthKey(new Date());
   const st = monthStats(rows, month);
-  const mock = Object.entries(integrationStatus()).filter(([, v]) => v === "mock").map(([k]) => k);
+  const upcomingCount = rows.filter((r) => r.booking_start && Date.parse(r.booking_start) >= Date.now() && r.booking_status !== "cancelled").length;
+  const warmCount = rows.filter((r) => effectiveStatus(r) === "unqualified" && r.reengage_rating === "warm" && !r.reengaged_at).length;
 
   const href = (patch: Partial<Search>) => {
     const p = new URLSearchParams(Object.entries({ ...searchParams, ...patch }).filter(([, v]) => v) as [string, string][]);
@@ -46,132 +59,156 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
   };
 
   return (
-    <main className="mx-auto max-w-6xl px-4 py-6">
-      <header className="flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <div className="text-xs uppercase tracking-wider text-muted">Aangan Studio</div>
-          <h1 className="text-2xl font-semibold">Calls</h1>
-        </div>
-        <div className="flex items-center gap-3 text-sm">
-          <form className="flex items-center gap-2">
-            <label className="text-muted" htmlFor="month">Month</label>
-            <input id="month" type="month" name="month" defaultValue={month} className="rounded-lg border border-line bg-white px-2 py-1" />
-            <button className="rounded-lg border border-line bg-white px-2 py-1">Go</button>
-          </form>
-          {process.env.DASHBOARD_PASSWORD && (
-            <form action={logout}>
-              <button className="text-muted hover:text-ink">Sign out</button>
+    <>
+      <TopNav connections={connections} />
+      <main className="mx-auto max-w-7xl px-4 pb-16">
+        {/* Hero */}
+        <section className="relative mt-5 overflow-hidden rounded-3xl border border-white/10">
+          <VideoBackdrop src={env("HERO_VIDEO_URL")} />
+          <div className="relative z-10 flex min-h-[300px] flex-col justify-end gap-4 p-6 pb-24 sm:p-10 sm:pb-24 md:flex-row md:items-end md:justify-between">
+            <div>
+              <div className="text-xs font-semibold uppercase tracking-[0.25em] text-white/70">{monthLabel(month)}</div>
+              <h1 className="mt-2 font-display text-4xl font-semibold leading-tight sm:text-5xl">
+                {greeting()}, <span className="text-ombre">designer.</span>
+              </h1>
+              <p className="mt-2 max-w-lg text-sm text-white/75">
+                {upcomingCount ? `${upcomingCount} consultation${upcomingCount > 1 ? "s" : ""} coming up` : "No consultations booked yet"}
+                {warmCount ? ` · ${warmCount} warm lead${warmCount > 1 ? "s" : ""} to re-engage` : ""}.
+              </p>
+            </div>
+            <form className="flex items-center gap-2">
+              <input type="hidden" name="view" value={view} />
+              <input aria-label="Month" type="month" name="month" defaultValue={month} className="field bg-plum-950/50" />
+              <button className="btn-ghost bg-plum-950/40">Show</button>
             </form>
-          )}
-        </div>
-      </header>
+          </div>
+        </section>
 
-      {mock.length > 0 && (
-        <p className="mt-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-sm text-amber-900">
-          {mock.length === 1 && mock[0] === "vaaniWebhook"
-            ? "Vaani webhook secret not set yet: incoming calls are accepted without signature checks. Add VAANI_WEBHOOK_SECRET in Vercel (SETUP.md §3, V6)."
-            : `Not connected yet: ${mock.join(", ")}. These integrations log instead of sending. See SETUP.md.`}
-        </p>
-      )}
+        {/* KPI tiles overlap the hero */}
+        <section className="relative z-20 -mt-16 grid grid-cols-2 gap-3 px-2 sm:px-6 lg:grid-cols-5">
+          <Tile label="Calls" value={st.calls} sub={`${st.afterHoursPct}% after hours`} accent />
+          <Tile label="Qualified" value={`${st.byStatus.qualified}`} sub={`+${st.byStatus.borderline} borderline · ${st.byStatus.escalated} escalated`} />
+          <Tile label="Booked" value={st.booked} sub={`${st.bookingRate}% booking rate`} />
+          <Tile label="Cost" value={`₹${st.totalCost.toLocaleString("en-IN")}`} sub={`${st.avgMinutes} min avg · ${st.costPerBooking !== null ? `₹${st.costPerBooking}/booking` : "no bookings yet"}`} />
+          <Tile label="Asked price" value={`${st.askedPricePct}%`} sub="no number ever quoted" />
+        </section>
 
-      <section className="mt-5 grid grid-cols-2 gap-3 md:grid-cols-5">
-        <Tile label="Calls this month" value={st.calls} sub={`${st.afterHoursPct}% after hours`} />
-        <Tile
-          label="Qualified / borderline"
-          value={`${st.byStatus.qualified} / ${st.byStatus.borderline}`}
-          sub={`${st.byStatus.unqualified} unqualified · ${st.byStatus.escalated} escalated`}
-        />
-        <Tile label="Consultations booked" value={st.booked} sub={`${st.bookingRate}% of qualified + borderline`} />
-        <Tile label="Cost" value={`₹${st.totalCost.toLocaleString("en-IN")}`} sub={`${st.avgMinutes} min avg · ${st.costPerBooking !== null ? `₹${st.costPerBooking}/booking` : "no bookings"}`} />
-        <Tile label="Asked about price" value={`${st.askedPricePct}%`} sub="of conversations" />
-      </section>
+        {/* Status mix + connections */}
+        <section className="mt-5 grid gap-3 lg:grid-cols-3">
+          <div className="glass p-5 lg:col-span-2">
+            <div className="flex items-baseline justify-between">
+              <h2 className="text-sm font-semibold">Status mix</h2>
+              <span className="text-xs text-white/50">{st.calls} calls in {monthLabel(month)}</span>
+            </div>
+            <div className="mt-4 flex h-3 overflow-hidden rounded-full bg-white/5">
+              {STATUSES.map((s) =>
+                st.byStatus[s] ? <div key={s} className={STATUS_STYLE[s].bar} style={{ width: `${(st.byStatus[s] / Math.max(st.calls, 1)) * 100}%` }} title={`${s}: ${st.byStatus[s]}`} /> : null,
+              )}
+            </div>
+            <div className="mt-3 flex flex-wrap gap-x-5 gap-y-2">
+              {STATUSES.map((s) => (
+                <Link key={s} href={href({ view: "all", status: s })} className="flex items-center gap-2 text-xs text-white/70 hover:text-white">
+                  <span className={`h-2 w-2 rounded-full ${STATUS_STYLE[s].dot}`} />
+                  <span className="capitalize">{s}</span>
+                  <span className="font-semibold text-white">{st.byStatus[s]}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
+          <div className="glass p-5">
+            <h2 className="text-sm font-semibold">Connections</h2>
+            <div className="mt-2"><ConnectionList items={connections} /></div>
+          </div>
+        </section>
 
-      <nav className="mt-6 flex gap-1 border-b border-line text-sm">
-        {VIEWS.map((v) => (
-          <Link
-            key={v.key}
-            href={href({ view: v.key })}
-            className={`-mb-px border-b-2 px-3 py-2 ${view === v.key ? "border-brand-600 font-medium text-ink" : "border-transparent text-muted hover:text-ink"}`}
-          >
-            {v.label}
-          </Link>
-        ))}
-      </nav>
+        {/* Tabs */}
+        <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-white/10 bg-white/[0.03] p-1 text-sm">
+          {VIEWS.map((v) => (
+            <Link
+              key={v.key}
+              href={href({ view: v.key })}
+              className={`whitespace-nowrap rounded-xl px-4 py-2 font-medium transition ${view === v.key ? "bg-ombre text-white shadow-[0_8px_24px_-8px_rgba(217,70,239,0.8)]" : "text-white/60 hover:bg-white/5 hover:text-white"}`}
+            >
+              {v.label}
+              {v.key === "upcoming" && upcomingCount > 0 && <span className="ml-2 rounded-full bg-white/20 px-1.5 text-[11px]">{upcomingCount}</span>}
+              {v.key === "reengage" && warmCount > 0 && <span className="ml-2 rounded-full bg-white/20 px-1.5 text-[11px]">{warmCount}</span>}
+            </Link>
+          ))}
+        </nav>
 
-      {view === "upcoming" ? <Upcoming rows={rows} /> : view === "reengage" ? <Reengage rows={rows} /> : <AllCalls rows={filterRows(rows, searchParams)} s={searchParams} />}
-    </main>
+        {view === "upcoming" ? <Upcoming rows={rows} /> : view === "reengage" ? <Reengage rows={rows} /> : <AllCalls rows={filterRows(rows, searchParams)} s={searchParams} />}
+      </main>
+    </>
   );
 }
 
 function AllCalls({ rows, s }: { rows: CallRow[]; s: Search }) {
   return (
     <>
-      <form className="mt-4 flex flex-wrap items-end gap-2 text-sm">
+      <form className="mt-4 flex flex-wrap items-center gap-2">
         <input type="hidden" name="view" value="all" />
-        <input name="q" defaultValue={s.q} placeholder="Search name or phone" className="w-48 rounded-lg border border-line bg-white px-3 py-1.5" />
-        <select name="status" defaultValue={s.status ?? ""} className="rounded-lg border border-line bg-white px-2 py-1.5">
+        <input name="q" defaultValue={s.q} placeholder="Search name or phone…" className="field w-56" />
+        <select name="status" defaultValue={s.status ?? ""} className="field">
           <option value="">All statuses</option>
-          {["qualified", "borderline", "unqualified", "escalated", "incomplete"].map((x) => (
-            <option key={x} value={x}>{x}</option>
-          ))}
+          {STATUSES.map((x) => <option key={x} value={x}>{x}</option>)}
         </select>
-        <label className="flex items-center gap-1 text-muted">From <input type="date" name="from" defaultValue={s.from} className="rounded-lg border border-line bg-white px-2 py-1" /></label>
-        <label className="flex items-center gap-1 text-muted">To <input type="date" name="to" defaultValue={s.to} className="rounded-lg border border-line bg-white px-2 py-1" /></label>
-        <button className="rounded-lg bg-ink px-3 py-1.5 text-white">Filter</button>
-        <Link href="/" className="px-2 py-1.5 text-muted">Clear</Link>
+        <input aria-label="From" type="date" name="from" defaultValue={s.from} className="field" />
+        <span className="text-white/40">→</span>
+        <input aria-label="To" type="date" name="to" defaultValue={s.to} className="field" />
+        <button className="btn-ombre">Filter</button>
+        <Link href="/" className="px-2 text-sm text-white/50 hover:text-white">Clear</Link>
       </form>
 
       {rows.length === 0 ? (
         <Empty text="No calls match. Test calls appear here a few seconds after they end." />
       ) : (
         <>
-          {/* Desktop table */}
-          <div className="mt-4 hidden overflow-hidden rounded-xl border border-line bg-white md:block">
+          <div className="glass mt-4 hidden overflow-hidden md:block">
             <table className="w-full text-sm">
-              <thead className="bg-paper text-left text-xs text-muted">
-                <tr>
-                  <th className="px-3 py-2 font-medium">Date</th>
-                  <th className="px-3 py-2 font-medium">Name</th>
-                  <th className="px-3 py-2 font-medium">Area</th>
-                  <th className="px-3 py-2 text-right font-medium">Score</th>
-                  <th className="px-3 py-2 font-medium">Status</th>
-                  <th className="px-3 py-2 font-medium">Booking</th>
-                  <th className="px-3 py-2 font-medium">Flags</th>
+              <thead className="text-left text-[11px] uppercase tracking-wider text-white/45">
+                <tr className="border-b border-white/5">
+                  <th className="px-4 py-3 font-semibold">When</th>
+                  <th className="px-4 py-3 font-semibold">Caller</th>
+                  <th className="px-4 py-3 font-semibold">Area</th>
+                  <th className="px-4 py-3 text-right font-semibold">Score</th>
+                  <th className="px-4 py-3 font-semibold">Status</th>
+                  <th className="px-4 py-3 font-semibold">Consultation</th>
+                  <th className="px-4 py-3 font-semibold">Flags</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r) => (
-                  <tr key={r.id} className="border-t border-line hover:bg-paper">
-                    <td className="whitespace-nowrap px-3 py-2 text-muted">
+                  <tr key={r.id} className="group border-b border-white/5 transition last:border-0 hover:bg-gradient-to-r hover:from-violet-600/15 hover:via-fuchsia-600/10 hover:to-orange-500/15">
+                    <td className="whitespace-nowrap px-4 py-3 text-white/55">
                       <Link href={`/calls/${r.id}`} className="block">{formatIst(r.started_at ?? r.created_at)}</Link>
                     </td>
-                    <td className="px-3 py-2 font-medium">
-                      <Link href={`/calls/${r.id}`} className="block">{r.caller_name ?? r.phone ?? "Unknown"}</Link>
+                    <td className="px-4 py-3">
+                      <Link href={`/calls/${r.id}`} className="block font-semibold text-white group-hover:text-ombre">{r.caller_name ?? r.phone ?? "Unknown caller"}</Link>
+                      {r.caller_name && r.phone && <span className="text-xs text-white/40">{r.phone}</span>}
                     </td>
-                    <td className="px-3 py-2">{r.location_area ?? <span className="text-muted">–</span>}</td>
-                    <td className="px-3 py-2 text-right"><Score score={r.score} /></td>
-                    <td className="px-3 py-2"><StatusPill status={effectiveStatus(r)} overridden={Boolean(r.status_override)} /></td>
-                    <td className="whitespace-nowrap px-3 py-2">{r.booking_start ? formatIst(r.booking_start) : <span className="text-muted">–</span>}</td>
-                    <td className="px-3 py-2"><Flags flags={r.flags} /></td>
+                    <td className="px-4 py-3 text-white/80">{r.location_area ?? <span className="text-white/30">–</span>}</td>
+                    <td className="px-4 py-3 text-right text-base"><Score score={r.score} /></td>
+                    <td className="px-4 py-3"><StatusPill status={effectiveStatus(r)} overridden={Boolean(r.status_override)} /></td>
+                    <td className="whitespace-nowrap px-4 py-3 text-white/80">{r.booking_start ? formatIst(r.booking_start) : <span className="text-white/30">–</span>}</td>
+                    <td className="px-4 py-3"><Flags flags={r.flags} /></td>
                   </tr>
                 ))}
               </tbody>
             </table>
           </div>
-          {/* Mobile cards */}
           <ul className="mt-4 space-y-2 md:hidden">
             {rows.map((r) => (
               <li key={r.id}>
-                <Link href={`/calls/${r.id}`} className="block rounded-xl border border-line bg-white p-3">
+                <Link href={`/calls/${r.id}`} className="glass block p-4">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium">{r.caller_name ?? r.phone ?? "Unknown"}</span>
+                    <span className="font-semibold">{r.caller_name ?? r.phone ?? "Unknown caller"}</span>
                     <StatusPill status={effectiveStatus(r)} overridden={Boolean(r.status_override)} />
                   </div>
-                  <div className="mt-1 text-xs text-muted">
-                    {formatIst(r.started_at ?? r.created_at)} · {r.location_area ?? "area ?"} · score {r.score ?? "–"}
+                  <div className="mt-1 flex items-center gap-2 text-xs text-white/55">
+                    <span>{formatIst(r.started_at ?? r.created_at)}</span>·<span>{r.location_area ?? "area ?"}</span>·<span>score <Score score={r.score} /></span>
                   </div>
-                  {r.booking_start && <div className="mt-1 text-xs">📅 {formatIst(r.booking_start)}</div>}
-                  <div className="mt-1"><Flags flags={r.flags} /></div>
+                  {r.booking_start && <div className="mt-2 text-xs font-medium text-orange-200">📅 {formatIst(r.booking_start)}</div>}
+                  <div className="mt-2"><Flags flags={r.flags} /></div>
                 </Link>
               </li>
             ))}
@@ -187,24 +224,36 @@ function Upcoming({ rows }: { rows: CallRow[] }) {
   const list = rows
     .filter((r) => r.booking_start && Date.parse(r.booking_start) >= now && r.booking_status !== "cancelled")
     .sort((a, b) => a.booking_start!.localeCompare(b.booking_start!));
-  if (!list.length) return <Empty text="No upcoming consultations." />;
+  if (!list.length) return <Empty text="No upcoming consultations yet. Calls the agent books show up here, soonest first." />;
   return (
-    <ul className="mt-4 space-y-2">
-      {list.map((r) => (
-        <li key={r.id}>
-          <Link href={`/calls/${r.id}`} className="flex flex-wrap items-center gap-x-4 gap-y-1 rounded-xl border border-line bg-white p-3 hover:border-brand-300">
-            <span className="w-44 font-semibold">{formatIst(r.booking_start)}</span>
-            <span className="font-medium">{r.caller_name ?? r.phone}</span>
-            <span className="text-sm text-muted">
-              {[r.property, r.location_area, r.carpet_sqft ? `${r.carpet_sqft} sq ft` : null, r.booking_type === "site_visit" ? "Site visit" : r.booking_type === "studio" ? "Studio" : null].filter(Boolean).join(" · ")}
-            </span>
-            <span className="ml-auto flex items-center gap-2">
-              <Flags flags={r.flags} />
-              <StatusPill status={effectiveStatus(r)} />
-            </span>
-          </Link>
-        </li>
-      ))}
+    <ul className="mt-4 grid gap-3 md:grid-cols-2">
+      {list.map((r) => {
+        const d = new Date(r.booking_start!);
+        return (
+          <li key={r.id}>
+            <Link href={`/calls/${r.id}`} className="glass ombre-border flex gap-4 p-4 transition hover:bg-white/[0.07]">
+              <div className="bg-ombre grid w-16 shrink-0 place-items-center rounded-xl py-2 text-center text-white">
+                <div className="text-[10px] font-semibold uppercase tracking-wider">{new Intl.DateTimeFormat("en-IN", { month: "short", timeZone: "Asia/Kolkata" }).format(d)}</div>
+                <div className="font-display text-2xl font-semibold leading-none">{new Intl.DateTimeFormat("en-IN", { day: "numeric", timeZone: "Asia/Kolkata" }).format(d)}</div>
+                <div className="text-[10px]">{formatIst(d, { date: false }).replace(" IST", "")}</div>
+              </div>
+              <div className="min-w-0 flex-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="truncate font-semibold">{r.caller_name ?? r.phone}</span>
+                  <StatusPill status={effectiveStatus(r)} />
+                </div>
+                <div className="mt-1 text-sm text-white/65">
+                  {[r.property, r.location_area, r.carpet_sqft ? `${r.carpet_sqft} sq ft` : null].filter(Boolean).join(" · ")}
+                </div>
+                <div className="mt-2 flex flex-wrap items-center gap-2 text-xs">
+                  <span className="rounded-md bg-white/10 px-2 py-0.5 font-medium">{r.booking_type === "site_visit" ? "🏠 Site visit" : r.booking_type === "studio" ? "🏛 Studio" : "Type ?"}</span>
+                  <Flags flags={r.flags} />
+                </div>
+              </div>
+            </Link>
+          </li>
+        );
+      })}
     </ul>
   );
 }
@@ -217,27 +266,35 @@ function Reengage({ rows }: { rows: CallRow[] }) {
   if (!list.length) return <Empty text="No warm leads waiting. Unqualified calls with a short timeline or 'just exploring' land here." />;
   return (
     <ul className="mt-4 space-y-2">
-      {list.map((r) => (
-        <li key={r.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-xl border border-line bg-white p-3">
-          <span className={`w-28 text-sm font-semibold ${r.reengage_date && r.reengage_date <= today ? "text-brand-700" : ""}`}>
-            {formatDate(r.reengage_date)}
-            {r.reengage_date && r.reengage_date <= today && <span className="block text-xs font-normal">due</span>}
-          </span>
-          <Link href={`/calls/${r.id}`} className="min-w-0 flex-1">
-            <div className="font-medium">{r.caller_name ?? r.phone ?? "Unknown"}</div>
-            <div className="truncate text-sm text-muted">{r.decline_reason}</div>
-          </Link>
-          {r.phone && <a href={`tel:${r.phone}`} className="text-sm text-brand-700">{r.phone}</a>}
-          <form action={markContacted}>
-            <input type="hidden" name="id" value={r.id} />
-            <button className="rounded-lg border border-line px-3 py-1.5 text-sm hover:bg-paper">Mark contacted</button>
-          </form>
-        </li>
-      ))}
+      {list.map((r) => {
+        const due = r.reengage_date && r.reengage_date <= today;
+        return (
+          <li key={r.id} className={`glass flex flex-wrap items-center gap-x-4 gap-y-2 p-4 ${due ? "ombre-border" : ""}`}>
+            <span className="w-28">
+              <span className={`block text-sm font-semibold ${due ? "text-ombre" : "text-white/80"}`}>{formatDate(r.reengage_date)}</span>
+              {due && <span className="text-[11px] font-semibold uppercase tracking-wider text-orange-300">Due now</span>}
+            </span>
+            <Link href={`/calls/${r.id}`} className="min-w-0 flex-1">
+              <div className="font-semibold">{r.caller_name ?? r.phone ?? "Unknown caller"}</div>
+              <div className="truncate text-sm text-white/55">{r.decline_reason}</div>
+            </Link>
+            {r.phone && <a href={`tel:${r.phone}`} className="text-sm font-medium text-orange-200 hover:text-orange-100">{r.phone}</a>}
+            <form action={markContacted}>
+              <input type="hidden" name="id" value={r.id} />
+              <button className="btn-ghost">Mark contacted</button>
+            </form>
+          </li>
+        );
+      })}
     </ul>
   );
 }
 
 function Empty({ text }: { text: string }) {
-  return <p className="mt-8 rounded-xl border border-dashed border-line p-8 text-center text-sm text-muted">{text}</p>;
+  return (
+    <div className="glass mt-4 p-10 text-center">
+      <div className="bg-ombre mx-auto mb-3 h-10 w-10 rounded-full opacity-80 blur-[1px]" />
+      <p className="text-sm text-white/60">{text}</p>
+    </div>
+  );
 }

@@ -8,5 +8,8 @@
   "HUBSPOT_PIPELINE": "default",
   "HUBSPOT_STAGE_BOOKED": "4412778201",
   "HUBSPOT_STAGE_QUALIFIED": "4412778200",
-  "VAANI_RATE_INR": "7"
+  "VAANI_RATE_INR": "7",
+  "LOGIN_VIDEO_URL": "https://assets.mixkit.co/videos/4488/4488-720.mp4",
+  "HERO_VIDEO_URL": "https://assets.mixkit.co/videos/41178/41178-720.mp4",
+  "_videos": "Free Mixkit clips (Mixkit Free License: commercial use, no attribution). Swap for your own studio footage any time."
 }
