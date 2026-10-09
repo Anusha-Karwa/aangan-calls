@@ -10,8 +10,8 @@ a dashboard page, so they never re-ask the basics. Nikhil sees the funnel in Hub
 Caller → Vaani agent (prompts/vaani_agent.md + knowledge_base.md, dashboard settings)
            ├── Book Appointment action → Cal.com event (60 min) → invite + reminders
            ├── Transfer call (optional, office hours)
-           └── call.completed → POST /api/vaani/webhook
-                 1. verify X-VaaniVoice-Signature (HMAC) · store raw payload · reply 200 (<10 s)
+           └── call_postprocessing → POST /api/vaani/webhook?secret=…
+                 1. check ?secret= (Vaani does not sign) · store raw payload · reply 200 at once
                  2. lib/extract.ts   Gemini JSON mode → zod → cross-check vs transcript → confidence flags
                  3. lib/rubric.ts    deterministic gates + score + status   (config/rubric.json)
                  4. booking          from payload, else Cal.com v2 lookup (attendee, ±10 min)

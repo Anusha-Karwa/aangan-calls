@@ -90,7 +90,7 @@ export function renderDesignerEmail(c: CallRow): { subject: string; html: string
     ${urgent}
     <table style="border-collapse:collapse;width:100%">${table}</table>
     ${summaryLines.length ? `<div style="margin-top:16px;padding-top:14px;border-top:1px solid #ebe4de"><div style="font-size:12px;color:#6b625c;margin-bottom:6px">SUMMARY</div><ul style="margin:0;padding-left:18px;color:#1f1a17;font-size:14px;line-height:1.5">${summaryLines.map((l) => `<li>${esc(l.replace(/^[-•]\s*/, ""))}</li>`).join("")}</ul></div>` : ""}
-    <div style="margin-top:18px">${button(link, "Open in dashboard", true)}${c.recording_url ? button(c.recording_url, "Listen to recording", false) : ""}</div>
+    <div style="margin-top:18px">${button(link, "Open in dashboard", true)}${c.recording_url ? button(`${appBaseUrl()}/api/recording/${c.id}`, "Listen to recording", false) : ""}</div>
   </div>
   <div style="font-size:12px;color:#6b625c;margin-top:12px">Sent automatically after the call. Reply to this email to reach the caller${c.email ? "" : " (no email captured)"}.</div>
 </div></body></html>`;
@@ -105,7 +105,7 @@ export function renderDesignerEmail(c: CallRow): { subject: string; html: string
     ...summaryLines.map((l) => `- ${l.replace(/^[-•]\s*/, "")}`),
     "",
     `Open in dashboard: ${link}`,
-    c.recording_url ? `Recording: ${c.recording_url}` : "",
+    c.recording_url ? `Recording: ${appBaseUrl()}/api/recording/${c.id}` : "",
   ]
     .filter((l) => l !== undefined)
     .join("\n");

@@ -128,7 +128,7 @@ export default async function CallPage({ params }: { params: { id: string } }) {
           </div>
           <div className="glass p-5 md:col-span-2">
             <h2 className="text-sm font-semibold">Recording</h2>
-            {c.recording_url ? <audio controls preload="none" src={c.recording_url} className="mt-4 w-full" /> : <p className="mt-3 text-sm text-white/50">No recording in the webhook payload.</p>}
+            {c.recording_url ? <audio controls preload="none" src={`/api/recording/${c.id}`} className="mt-4 w-full" /> : <p className="mt-3 text-sm text-white/50">No recording in the webhook payload.</p>}
             {c.transcript_url && <a href={c.transcript_url} className="mt-3 block text-sm text-orange-200">Transcript file ↗</a>}
           </div>
         </section>

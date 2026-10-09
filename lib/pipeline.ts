@@ -31,9 +31,11 @@ export interface CallInput {
 
 /** Step 1: store the raw payload immediately (before any slow work). Returns null if already processed. */
 export async function receiveCall(input: CallInput): Promise<{ row: CallRow; duplicate: boolean }> {
+  // A row without a transcript is only a stub from call_started; a row stuck without a status
+  // for 5+ minutes is a failed run. Anything else has already been received.
   const existing = await db().getCallByVaaniId(input.sourceId);
   const stale = existing && !existing.status && Date.now() - Date.parse(existing.updated_at) > 5 * 60_000;
-  if (existing && !stale) return { row: existing, duplicate: true };
+  if (existing && existing.transcript && !stale) return { row: existing, duplicate: true };
   const row = await db().upsertCall({
     vaani_call_id: input.sourceId,
     channel: input.channel,

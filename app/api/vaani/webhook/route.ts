@@ -1,18 +1,23 @@
 import { NextResponse } from "next/server";
 import { waitUntil } from "@vercel/functions";
+import { db } from "@/lib/db";
 import { processCall, receiveCall, type CallInput } from "@/lib/pipeline";
+import { isAfterHours } from "@/lib/time";
 import { normaliseVaaniPayload, verifyVaaniRequest } from "@/lib/vaani";
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
 
-// Vaani post-call webhook. Vaani gives each attempt 10 s, so we store the raw payload,
-// reply 200 at once, and finish extraction/notifications in the background (waitUntil).
+// Vaani webhook (Settings → Webhooks): https://<app>/api/vaani/webhook?secret=<VAANI_WEBHOOK_SECRET>
+// - call_started / human_transfer_*: remember the caller's number and the transfer on a stub row.
+// - call_postprocessing: transcript + recording are ready -> run the full pipeline (in the background,
+//   so Vaani gets its 200 straight away).
+// - everything else: acknowledged and ignored.
 export async function POST(req: Request) {
   const raw = await req.text();
   const url = new URL(req.url);
   const auth = verifyVaaniRequest(raw, req.headers, url);
-  if (!auth.ok) return NextResponse.json({ error: "invalid signature" }, { status: 401 });
+  if (!auth.ok) return NextResponse.json({ error: "invalid secret" }, { status: 401 });
 
   let body: unknown;
   try {
@@ -22,25 +27,37 @@ export async function POST(req: Request) {
   }
 
   const call = normaliseVaaniPayload(body);
-  if (call.eventType === "webhook.ping") return NextResponse.json({ ok: true, pong: true });
-  if (!["call.completed", "call.failed", "call.ended", "call_ended"].includes(call.eventType)) {
-    return NextResponse.json({ ok: true, ignored: call.eventType });
+
+  if (call.event === "call_started" || call.event.startsWith("human_transfer")) {
+    const existing = await db().getCallByVaaniId(call.callId);
+    if (!existing?.transcript) {
+      const flags = new Set(existing?.flags ?? []);
+      if (call.transferred) flags.add("transferred");
+      await db().upsertCall({
+        vaani_call_id: call.callId,
+        channel: "phone",
+        phone: existing?.phone ?? (call.event === "call_started" ? call.callerPhone : null),
+        started_at: existing?.started_at ?? new Date().toISOString(),
+        after_hours: existing?.after_hours ?? isAfterHours(new Date()),
+        flags: [...flags],
+      });
+    }
+    return NextResponse.json({ ok: true, event: call.event });
   }
 
+  if (call.event !== "call_postprocessing") return NextResponse.json({ ok: true, ignored: call.event });
+
+  const stub = await db().getCallByVaaniId(call.callId);
   const input: CallInput = {
     sourceId: call.callId,
     channel: "phone",
-    startedAt: call.startedAt,
+    startedAt: stub?.started_at ? new Date(stub.started_at) : call.startedAt,
     durationSec: call.durationSec,
     transcript: call.transcript,
-    transcriptUrl: call.transcriptUrl,
     recordingUrl: call.recordingUrl,
-    phone: call.callerPhone,
-    name: call.callerName,
-    email: call.callerEmail,
-    booking: call.booking,
-    transferred: call.transferred,
-    failed: call.failed,
+    phone: call.callerPhone ?? stub?.phone ?? null,
+    transferred: call.transferred || Boolean(stub?.flags.includes("transferred")),
+    failed: !call.transcript.trim(),
     raw: body,
   };
 
@@ -48,11 +65,10 @@ export async function POST(req: Request) {
   if (duplicate) return NextResponse.json({ ok: true, id: row.id, duplicate: true });
 
   const work = processCall(row.id, input);
-  // ?sync=1 waits for the whole pipeline (handy for local tests and scripts).
   if (url.searchParams.get("sync") === "1") {
     const done = await work;
     return NextResponse.json({ ok: true, id: row.id, status: done?.status ?? null, score: done?.score ?? null });
   }
   waitUntil(work);
-  return NextResponse.json({ ok: true, id: row.id, verified: auth.mode });
+  return NextResponse.json({ ok: true, id: row.id });
 }

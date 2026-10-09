@@ -1,10 +1,9 @@
-// Posts transcripts to the webhook as fake Vaani "call.completed" events (signed if a secret is set).
+// Posts transcripts to the webhook as fake Vaani events (call_started + call_postprocessing, ?secret= if set).
 // Usage:
 //   npx tsx scripts/simulate-call.ts T01 T09 T10        (files in knowledge/transcripts)
 //   npx tsx scripts/simulate-call.ts --all-phone
 //   BASE=https://your-app.vercel.app npx tsx scripts/simulate-call.ts T01
 import { config } from "dotenv";
-import { createHmac } from "node:crypto";
 import fs from "node:fs";
 import path from "node:path";
 
@@ -30,23 +29,37 @@ function callMeta(text: string) {
 async function send(id: string) {
   const text = fs.readFileSync(path.join(DIR, `${id}.txt`), "utf8");
   const meta = callMeta(text);
-  const body = JSON.stringify({
-    id: `evt_sim_${id}_${Date.now()}`,
-    type: "call.completed",
-    created: Math.floor(Date.now() / 1000),
+  // Same shape as Vaani's webhooks: call_started (with the caller's number), then call_postprocessing.
+  const callId = `sim-${id}${process.env.SUFFIX ?? ""}`;
+  const endIso = new Date(Date.parse(meta.startedAt) + meta.durationSec * 1000).toISOString();
+  const hhmm = meta.startedAt.slice(11, 19);
+  const transcript = text
+    .split("\n")
+    .slice(1)
+    .filter((l) => l.trim())
+    .map((l) => `[${hhmm}] ${l.replace(/^Front Desk:/, "AGENT:").replace(/^Caller:/, "USER:")}`)
+    .join("\n\n");
+  const started = { event: "call_started", room_name: callId, status: "active", phone_number: "+9198" + String(Math.abs(hash(id))).padStart(8, "0").slice(0, 8) };
+  const post = {
+    event: "call_postprocessing",
+    call_id: callId,
+    timestamp: endIso,
     data: {
-      call_id: `sim-${id}${process.env.SUFFIX ?? ""}`,
-      started_at: meta.startedAt,
-      duration_sec: meta.durationSec,
-      transcript: text.split("\n").slice(1).join("\n").trim(),
+      room_name: callId,
+      call_id: callId,
+      call_duration: meta.durationSec * 1000,
+      end_reason: "Call ended",
+      summary: "(simulated)",
+      entities: {},
       recording_url: "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3",
-      caller_phone: "+9198" + String(Math.abs(hash(id))).padStart(8, "0").slice(0, 8),
+      transcript,
     },
-  });
-  const headers: Record<string, string> = { "Content-Type": "application/json" };
+  };
   const secret = process.env.VAANI_WEBHOOK_SECRET;
-  if (secret) headers["X-VaaniVoice-Signature"] = "sha256=" + createHmac("sha256", secret).update(body).digest("hex");
-  const res = await fetch(`${BASE}/api/vaani/webhook?sync=1`, { method: "POST", headers, body });
+  const qs = (sync: boolean) => `?${new URLSearchParams({ ...(secret ? { secret } : {}), ...(sync ? { sync: "1" } : {}) })}`;
+  const headers = { "Content-Type": "application/json" };
+  await fetch(`${BASE}/api/vaani/webhook${qs(false)}`, { method: "POST", headers, body: JSON.stringify(started) });
+  const res = await fetch(`${BASE}/api/vaani/webhook${qs(true)}`, { method: "POST", headers, body: JSON.stringify(post) });
   console.log(id.padEnd(4), res.status, await res.text());
 }
 

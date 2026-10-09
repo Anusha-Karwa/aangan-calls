@@ -71,6 +71,12 @@ export async function connectionStatus(force = false): Promise<Connection[]> {
       const j = await getJson(`https://generativelanguage.googleapis.com/v1beta/models/${geminiModel()}`, { "x-goog-api-key": env("GEMINI_API_KEY") });
       return j.displayName ?? geminiModel();
     }),
+    check("vaani_api", "Vaani API", Boolean(env("VAANI_API_KEY")), async () => {
+      const j = await getJson("https://api.vaanivoice.ai/api/agents", { "X-API-Key": env("VAANI_API_KEY") });
+      const list = (Array.isArray(j) ? j : j.data ?? []) as { id: string; display_name: string; status: string; published: boolean }[];
+      const a = list.find((x) => x.id === env("VAANI_AGENT_ID"));
+      return a ? `Agent “${a.display_name}” ${a.status}${a.published ? ", published" : ", NOT published"}` : `${list.length} agents (VAANI_AGENT_ID not found)`;
+    }),
     (async (): Promise<Connection> => {
       const secret = Boolean(env("VAANI_WEBHOOK_SECRET"));
       let last: string | null = null;
@@ -84,8 +90,8 @@ export async function connectionStatus(force = false): Promise<Connection[]> {
           /* reported by the Neon check */
         }
       }
-      if (last) return { key: "vaani", label: "Vaani", state: "connected", detail: `Last call ${last.slice(0, 16).replace("T", " ")} UTC${secret ? "" : " · secret not set"}` };
-      return { key: "vaani", label: "Vaani", state: "waiting", detail: secret ? "Webhook secret set · waiting for first call" : "Waiting for webhook + first call" };
+      if (last) return { key: "vaani", label: "Vaani calls", state: "connected", detail: `Last call ${last.slice(0, 16).replace("T", " ")} UTC${secret ? "" : " · secret not set"}` };
+      return { key: "vaani", label: "Vaani calls", state: "waiting", detail: secret ? "Webhook secret set · waiting for first call" : "Waiting for webhook + first call" };
     })(),
   ]);
   cache = { at: Date.now(), value };
