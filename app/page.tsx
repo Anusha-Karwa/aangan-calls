@@ -9,6 +9,7 @@ import { STATUS_STYLE, StatusPill, VideoBackdrop } from "@/components/ui";
 import { CountUp, PeopleBoard } from "@/components/interactive";
 import { BookingCalendar, type CalendarDay, type DayPin } from "@/components/hero";
 import { DailyBars } from "@/components/insights";
+import { CallerFilters } from "@/components/filters";
 import { TopNav } from "@/components/nav";
 
 export const dynamic = "force-dynamic";
@@ -268,20 +269,13 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
         </nav>
 
         {view === "all" && (
-          <form action="/#callers" className="mt-4 flex flex-wrap items-center gap-2">
-            <input type="hidden" name="view" value="all" />
-            <input name="q" defaultValue={searchParams.q} placeholder="Search name, phone or area…" className="field w-64" />
-            <select name="month" defaultValue={month} className="field">
-              <option value="all">All time</option>
-              {months.map((m) => <option key={m} value={m}>{monthLabel(m)}</option>)}
-            </select>
-            <select name="status" defaultValue={searchParams.status ?? ""} className="field">
-              <option value="">Every status</option>
-              {STATUSES.map((s) => <option key={s} value={s}>{STATUS_STYLE[s].label}</option>)}
-            </select>
-            <button className="btn-ombre">Apply</button>
-            {(searchParams.q || searchParams.status || searchParams.month) && <Link href="/" scroll={false} className="px-2 text-sm font-semibold text-muted hover:text-ink">Reset</Link>}
-          </form>
+          <CallerFilters
+            q={searchParams.q ?? ""}
+            month={month}
+            status={searchParams.status ?? ""}
+            months={months.map((m) => ({ value: m, label: monthLabel(m) }))}
+            statuses={STATUSES.map((s) => ({ value: s, label: STATUS_STYLE[s].label }))}
+          />
         )}
 
         <PeopleBoard view={view} people={listPeople} />
