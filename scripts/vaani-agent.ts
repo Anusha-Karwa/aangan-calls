@@ -76,12 +76,15 @@ async function main() {
         end_conversation_on_idle: true,
         idle_call_warning_timeout: 12,
         idle_call_hangup_timeout: 25,
-        initial_idle_call_warning_timeout: 10,
+        initial_idle_call_warning_timeout: 8,
         initial_idle_call_hungup_timeout: 30,
         idle_call_warning_message: "Are you still there? Take your time.",
         idle_call_hangup_message: "I'll end the call for now. Feel free to call Aangan Studio back anytime.",
       },
-      call_settings: { max_call_duration: 12, max_duration_enabled: true },
+      // Do NOT enable max duration: Vaani treated max_call_duration=12 as seconds and cut every call at ~12 s.
+      call_settings: { max_duration_enabled: false, max_call_duration: 30 },
+      // Laptop mics in normal rooms trip the noise watcher; be tolerant before hanging up.
+      vad_watcher: { empty_transcript_wait: 8, max_consecutive_noise: 6 },
     },
   };
   const ex = await fetch(`${BASE}/api/agent/${id}/experience`, {

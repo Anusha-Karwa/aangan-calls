@@ -51,32 +51,64 @@ export function VoiceCall() {
 
   useEffect(() => () => hangUp(false), []); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // One place that adds or updates a line of the live conversation.
+  const fromRoom = useRef(false); // once the call itself sends transcripts, ignore the backup socket
+  function upsertLine(id: string, who: "agent" | "you", text: string, final: boolean) {
+    if (!text.trim()) return;
+    setLines((ls) => {
+      const i = ls.findIndex((l) => l.id === id);
+      // replace the same segment, or the in-progress line from the same speaker
+      const j = i >= 0 ? i : ls.length && !ls[ls.length - 1].final && ls[ls.length - 1].who === who ? ls.length - 1 : -1;
+      const line: Line = { id, who, text, final };
+      if (j >= 0) { const copy = ls.slice(); copy[j] = line; return copy; }
+      return [...ls, line];
+    });
+  }
+
+  // Live transcript straight from the call (LiveKit voice agents publish it in-room).
+  function listenForTranscripts(room: Room) {
+    const whoIs = (identity?: string) => (identity && identity === room.localParticipant.identity ? "you" : "agent");
+    // Newer agents: text streams on the "lk.transcription" topic.
+    try {
+      room.registerTextStreamHandler("lk.transcription", async (reader, participant) => {
+        fromRoom.current = true;
+        const attrs = (reader.info.attributes ?? {}) as Record<string, string>;
+        const id = attrs["lk.segment_id"] ?? reader.info.id;
+        const who = whoIs(participant.identity);
+        let text = "";
+        for await (const chunk of reader) {
+          text += chunk;
+          upsertLine(id, who, text, false);
+        }
+        upsertLine(id, who, text, true);
+      });
+    } catch { /* older SDK/server: fall back to transcription events */ }
+    // Older agents: transcription events.
+    room.on(RoomEvent.TranscriptionReceived, (segments, participant) => {
+      fromRoom.current = true;
+      for (const s of segments) upsertLine(s.id, whoIs(participant?.identity), s.text, s.final);
+    });
+  }
+
+  // Backup: Vaani's live-captions socket (only used if the call sends no transcripts itself).
   function openCaptions(url: string) {
     try {
       const ws = new WebSocket(url);
       wsRef.current = ws;
       ws.onmessage = (ev) => {
+        if (fromRoom.current) return;
         const m = JSON.parse(ev.data as string) as {
           type: string;
-          segments?: { id?: string; speaker: string; text: string; is_final?: boolean }[];
+          segments?: { id?: string; speaker: string; text: string; is_final?: boolean; segment_index?: number }[];
           segment?: { id?: string; speaker: string; text: string; is_final?: boolean; segment_index?: number };
         };
         const add = (s: { id?: string; speaker: string; text: string; is_final?: boolean; segment_index?: number }) => {
-          if (!s.text?.trim()) return;
           const who = s.speaker === "agent" ? "agent" : "you";
-          const id = s.id ?? `${who}-${s.segment_index ?? Date.now()}`;
-          setLines((ls) => {
-            const i = ls.findIndex((l) => l.id === id);
-            // replace the in-progress line from the same speaker, or the same segment
-            const j = i >= 0 ? i : ls.length && !ls[ls.length - 1].final && ls[ls.length - 1].who === who ? ls.length - 1 : -1;
-            const line: Line = { id, who, text: s.text, final: s.is_final !== false };
-            if (j >= 0) { const copy = ls.slice(); copy[j] = line; return copy; }
-            return [...ls, line];
-          });
+          upsertLine(s.id ?? `${who}-${s.segment_index ?? Date.now()}`, who, s.text ?? "", s.is_final !== false);
         };
         if (m.type === "history") m.segments?.forEach(add);
         if (m.type === "transcript" && m.segment) add(m.segment);
-        if (m.type === "call_ended") hangUp(true);
+        // NB: never hang up from here; only the call itself disconnecting ends the call on screen.
       };
     } catch { /* captions are optional */ }
   }
@@ -102,6 +134,8 @@ export function VoiceCall() {
         if (track.kind === Track.Kind.Audio) audioRef.current?.appendChild(track.attach());
       });
       room.on(RoomEvent.Disconnected, () => hangUp(true));
+      fromRoom.current = false;
+      listenForTranscripts(room);
       await room.connect(j.url, j.token);
       // Echo cancellation + noise suppression stop the assistant hearing itself through laptop speakers.
       await room.localParticipant.setMicrophoneEnabled(true, { echoCancellation: true, noiseSuppression: true, autoGainControl: true });
