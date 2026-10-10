@@ -123,12 +123,12 @@ export function VoiceCall() {
       {/* The orb */}
       <div className="relative grid h-56 w-56 place-items-center sm:h-64 sm:w-64">
         <span className={`absolute inset-0 rounded-full bg-ombre opacity-25 blur-2xl transition-transform duration-100 ${phase === "idle" ? "animate-breathe" : ""}`} style={{ transform: `scale(${phase === "live" ? scale + 0.1 : 1})` }} />
-        {phase === "live" && <span className="pin-ring absolute inset-6 rounded-full bg-fuchsia-300/40" />}
+        {phase === "live" && <span className="pin-ring absolute inset-6 rounded-full bg-violet-200/50" />}
         <button
           onClick={phase === "live" ? () => hangUp(true) : phase === "connecting" ? undefined : start}
           disabled={phase === "connecting"}
           aria-label={phase === "live" ? "End call" : "Start talking to Aangan"}
-          className="bg-ombre animate-drift relative grid h-40 w-40 place-items-center rounded-full text-white shadow-[0_30px_70px_-20px_rgba(192,38,211,0.8)] transition-transform duration-100 hover:brightness-105 sm:h-44 sm:w-44"
+          className="bg-ombre animate-drift relative grid h-40 w-40 place-items-center rounded-full text-white shadow-[0_28px_60px_-24px_rgba(159,122,234,0.7)] transition-transform duration-100 hover:brightness-105 sm:h-44 sm:w-44"
           style={{ transform: `scale(${phase === "live" ? scale : 1})` }}
         >
           <span className="text-center">
@@ -166,7 +166,7 @@ export function VoiceCall() {
           <div className="space-y-2">
             <div className="min-h-[52px] space-y-1">
               {[...lines, ...(interim ? [interim] : [])].slice(-2).map((l, i) => (
-                <p key={i} className={`animate-fade-in text-sm ${l.who === "agent" ? "font-medium text-ink" : "text-fuchsia-700"}`}>{l.text}</p>
+                <p key={i} className={`animate-fade-in text-sm ${l.who === "agent" ? "font-medium text-ink" : "text-violet-600"}`}>{l.text}</p>
               ))}
               {lines.length === 0 && !interim && <p className="text-sm text-muted">Say hello. The assistant is listening.</p>}
             </div>
@@ -182,7 +182,7 @@ export function VoiceCall() {
             <p className="text-sm text-ink/70">If you booked a consultation, your calendar invite is on its way. Our designer already has everything you shared.</p>
           </div>
         )}
-        {phase === "error" && <p className="animate-fade-in text-sm text-red-700">{error}</p>}
+        {phase === "error" && <p className="animate-fade-in text-sm text-red-500">{error}</p>}
       </div>
     </div>
   );

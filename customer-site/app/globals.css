@@ -5,8 +5,8 @@
 /* Same brand tokens as the studio dashboard */
 :root {
   --ink: #1d1430;
-  --ombre: linear-gradient(110deg, #7c3aed 0%, #c026d3 38%, #f43f5e 68%, #f97316 100%);
-  --ombre-soft: linear-gradient(110deg, rgba(124, 58, 237, 0.45) 0%, rgba(192, 38, 211, 0.3) 40%, rgba(244, 63, 94, 0.25) 65%, rgba(249, 115, 22, 0.45) 100%);
+  --ombre: linear-gradient(110deg, #9f7aea 0%, #d58fd8 40%, #f29ab0 70%, #f7b386 100%);
+  --ombre-soft: linear-gradient(110deg, rgba(159, 122, 234, 0.35) 0%, rgba(213, 143, 216, 0.25) 40%, rgba(242, 154, 176, 0.2) 65%, rgba(247, 179, 134, 0.35) 100%);
 }
 
 html { color-scheme: light; }
