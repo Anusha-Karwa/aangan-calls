@@ -224,40 +224,9 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
           </div>
         </section>
 
-        {/* 02 · Who called */}
-        <SectionTitle n="02" title="Who called" aside="Click a status to filter the board" />
-        <section className="card animate-rise p-5">
-          <div className="flex h-11 gap-[2px] overflow-hidden rounded-2xl bg-white">
-            {STATUSES.filter((s) => st.byStatus[s]).map((s) => {
-              const w = (st.byStatus[s] / Math.max(st.people, 1)) * 100;
-              return (
-                <Link key={s} scroll={false} href={href({ view: "all", status: s })} title={`${STATUS_STYLE[s].label}: ${st.byStatus[s]}`}
-                  className={`${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].bar} flex items-center justify-center gap-1.5 px-2 text-xs font-bold text-white transition hover:brightness-110 ${s === "unqualified" || s === "incomplete" ? "!text-ink/70" : ""}`}
-                  style={{ width: `${w}%` }}>
-                  {w >= 14 && <><span aria-hidden>{STATUS_ICON[s]}</span>{st.byStatus[s]} {STATUS_STYLE[s].label}</>}
-                </Link>
-              );
-            })}
-            {st.people === 0 && <div className="flex flex-1 items-center justify-center rounded-2xl bg-violet-50 text-xs font-semibold text-muted">No calls in {monthLabel(month)} yet</div>}
-          </div>
-          <div className="mt-4 flex flex-wrap gap-2">
-            {STATUSES.map((s) => {
-              const on = searchParams.status === s;
-              return (
-                <Link key={s} scroll={false} href={on ? href({ status: undefined }) : href({ view: "all", status: s })}
-                  className={`group flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${on ? "border-transparent bg-ink text-white" : "border-violet-100 bg-white text-ink hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-sm"}`}>
-                  <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] text-white ${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].dot}`} aria-hidden>{STATUS_ICON[s]}</span>
-                  {STATUS_STYLE[s].label}
-                  <span className={on ? "text-white/70" : "text-muted"}>{st.byStatus[s]}</span>
-                </Link>
-              );
-            })}
-          </div>
-        </section>
-
-        {/* 03 · Callers */}
+        {/* 02 · Callers: tabs, one filter panel (search + month + status), and the board right below */}
         <div id="callers" className="scroll-mt-20" />
-        <SectionTitle n="03" title="Callers" aside={`${listPeople.length} ${view === "all" ? `in ${monthLabel(month)}` : "people"} · click anyone for details`} />
+        <SectionTitle n="02" title="Callers" aside={`${listPeople.length} ${view === "all" ? `in ${monthLabel(month)}` : "people"} · click anyone for details`} />
         <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-violet-100 bg-white/70 p-1 text-sm shadow-sm backdrop-blur">
           {VIEWS.map((v) => (
             <Link key={v.key} scroll={false} href={href({ view: v.key, status: undefined })}
@@ -269,13 +238,42 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
         </nav>
 
         {view === "all" && (
-          <CallerFilters
-            q={searchParams.q ?? ""}
-            month={month}
-            status={searchParams.status ?? ""}
-            months={months.map((m) => ({ value: m, label: monthLabel(m) }))}
-            statuses={STATUSES.map((s) => ({ value: s, label: STATUS_STYLE[s].label }))}
-          />
+          <section className="card mt-4 p-4 sm:p-5">
+            <CallerFilters
+              q={searchParams.q ?? ""}
+              month={month}
+              status={searchParams.status ?? ""}
+              months={months.map((m) => ({ value: m, label: monthLabel(m) }))}
+            />
+
+            {/* Status: the bar shows the mix, the chips filter the board below */}
+            <div className="mt-4 border-t border-violet-50 pt-4">
+              <div className="flex h-2.5 gap-[2px] overflow-hidden rounded-full bg-violet-50">
+                {STATUSES.filter((s) => st.byStatus[s]).map((s) => (
+                  <Link key={s} scroll={false} href={href({ view: "all", status: s })} title={`${STATUS_STYLE[s].label}: ${st.byStatus[s]}`}
+                    className={`${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].bar} transition hover:brightness-110 ${searchParams.status && searchParams.status !== s ? "opacity-30" : ""}`}
+                    style={{ width: `${(st.byStatus[s] / Math.max(st.people, 1)) * 100}%` }} />
+                ))}
+              </div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <Link scroll={false} href={href({ view: "all", status: undefined })}
+                  className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${!searchParams.status ? "border-transparent bg-ink text-white" : "border-violet-100 bg-white text-ink hover:border-violet-200"}`}>
+                  All <span className={!searchParams.status ? "text-white/70" : "text-muted"}>{st.people}</span>
+                </Link>
+                {STATUSES.map((s) => {
+                  const on = searchParams.status === s;
+                  return (
+                    <Link key={s} scroll={false} href={on ? href({ status: undefined }) : href({ view: "all", status: s })}
+                      className={`flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${on ? "border-transparent bg-ink text-white" : "border-violet-100 bg-white text-ink hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-sm"}`}>
+                      <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] text-white ${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].dot}`} aria-hidden>{STATUS_ICON[s]}</span>
+                      {STATUS_STYLE[s].label}
+                      <span className={on ? "text-white/70" : "text-muted"}>{st.byStatus[s]}</span>
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </section>
         )}
 
         <PeopleBoard view={view} people={listPeople} />

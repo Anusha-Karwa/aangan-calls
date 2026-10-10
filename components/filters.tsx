@@ -5,18 +5,17 @@ import { useEffect, useRef, useState, useTransition } from "react";
 
 // Caller filters that update the board in place: no full page reload, no jump to the top.
 // Month / status apply on change; search applies as you type (debounced) or on Enter / Apply.
-export function CallerFilters({ q, month, status, months, statuses }: {
+export function CallerFilters({ q, month, status, months }: {
   q: string;
   month: string;
   status: string;
   months: { value: string; label: string }[];
-  statuses: { value: string; label: string }[];
 }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [text, setText] = useState(q);
   const [m, setM] = useState(month);
-  const [s, setS] = useState(status);
+  const [s, setS] = useState(status); // set by the status chips (links) via the URL
   const first = useRef(true);
 
   // Follow changes made elsewhere (status chips, tabs) without touching what is being typed.
@@ -48,7 +47,7 @@ export function CallerFilters({ q, month, status, months, statuses }: {
   };
 
   return (
-    <form onSubmit={(e) => { e.preventDefault(); apply(); }} className="mt-4 flex flex-wrap items-center gap-2">
+    <form onSubmit={(e) => { e.preventDefault(); apply(); }} className="flex flex-wrap items-center gap-2">
       <div className="relative">
         <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm text-muted">🔍</span>
         <input value={text} onChange={(e) => setText(e.target.value)} placeholder="Search name, phone or area…" className="field w-64 pl-8" aria-label="Search callers" />
@@ -56,10 +55,6 @@ export function CallerFilters({ q, month, status, months, statuses }: {
       <select value={m} onChange={(e) => { setM(e.target.value); apply({ month: e.target.value }); }} className="field" aria-label="Month">
         <option value="all">All time</option>
         {months.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
-      </select>
-      <select value={s} onChange={(e) => { setS(e.target.value); apply({ status: e.target.value }); }} className="field" aria-label="Status">
-        <option value="">Every status</option>
-        {statuses.map((x) => <option key={x.value} value={x.value}>{x.label}</option>)}
       </select>
       <button className="btn-ombre min-w-[92px]" disabled={pending}>{pending ? "Applying…" : "Apply"}</button>
       {(text || s || q) && <button type="button" onClick={reset} className="px-2 text-sm font-semibold text-muted hover:text-ink">Reset</button>}
