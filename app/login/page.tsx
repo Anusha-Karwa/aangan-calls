@@ -1,5 +1,6 @@
 import { env } from "@/lib/env";
-import { Logo, VideoBackdrop } from "@/components/ui";
+import { VideoBackdrop } from "@/components/ui";
+import { AanganLogo } from "@/components/logo";
 import { login } from "../actions";
 
 export const dynamic = "force-dynamic";
@@ -11,7 +12,7 @@ export default function Login({ searchParams }: { searchParams: { next?: string;
 
       <div className="relative z-10 grid w-full max-w-5xl items-center gap-10 md:grid-cols-2">
         <div className="animate-rise text-center md:text-left">
-          <div className="inline-flex"><Logo /></div>
+          <div className="inline-flex rounded-2xl bg-white/70 px-3 py-2 shadow-sm ring-1 ring-violet-100 backdrop-blur"><AanganLogo size={52} /></div>
           <h1 className="mt-6 font-display text-5xl font-semibold leading-[1.05] text-ink sm:text-6xl">
             Every call,
             <br />

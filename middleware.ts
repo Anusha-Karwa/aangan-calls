@@ -16,5 +16,5 @@ export async function middleware(req: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!api/vaani|api/calcom|api/health|login|_next|favicon.ico).*)"],
+  matcher: ["/((?!api/vaani|api/calcom|api/health|login|_next|favicon.ico|icon\.svg|apple-icon|.*\.(?:svg|png|ico|jpg|webp)$).*)"],
 };

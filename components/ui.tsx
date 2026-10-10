@@ -1,4 +1,5 @@
 import type { CallStatus } from "@/lib/types";
+import { AanganLogo } from "./logo";
 
 // ---------- status + flags (light theme, vivid) ----------
 
@@ -87,14 +88,6 @@ export function VideoBackdrop({ src, tone = "dark" }: { src: string; tone?: "dar
   );
 }
 
-export function Logo({ light }: { light?: boolean }) {
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span className="bg-ombre grid h-9 w-9 place-items-center rounded-xl font-display text-lg font-bold text-white shadow-[0_8px_22px_-8px_rgba(192,38,211,0.8)]">A</span>
-      <span className="leading-tight">
-        <span className={`block font-display text-lg font-semibold ${light ? "text-white" : "text-ink"}`}>Aangan</span>
-        <span className={`block text-[10px] font-semibold uppercase tracking-[0.2em] ${light ? "text-white/70" : "text-muted"}`}>Studio · Calls</span>
-      </span>
-    </span>
-  );
+export function Logo({ light, tagline = "Interiors · Pune" }: { light?: boolean; tagline?: string | null }) {
+  return <AanganLogo tone={light ? "light" : "dark"} tagline={tagline} />;
 }

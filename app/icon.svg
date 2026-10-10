@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="40" height="40" viewBox="0 0 40 40">
+  <defs>
+    <linearGradient id="d" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#7c3aed"/>
+      <stop offset="0.55" stop-color="#d946ef"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+    <linearGradient id="v" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#8b5cf6"/>
+      <stop offset="1" stop-color="#f97316"/>
+    </linearGradient>
+  </defs>
+  <!-- Tab icon: the lotus on a cream tile (the fine ring is dropped; it vanishes at 16px) -->
+  <rect width="40" height="40" rx="10" fill="#fcf9f5"/>
+  <path d="M20 29C16.6 26 16.6 16.5 20 9.5C23.4 16.5 23.4 26 20 29Z" fill="url(#v)"/>
+  <path d="M19 29.3C13 29.8 8.8 26 7.8 20.6C13.6 20.2 17.5 23.8 19 29.3ZM21 29.3C27 29.8 31.2 26 32.2 20.6C26.4 20.2 22.5 23.8 21 29.3Z" fill="url(#d)" fill-opacity="0.7"/>
+  <path d="M9 32.5H31" stroke="#24182f" stroke-width="2" stroke-linecap="round"/>
+</svg>
