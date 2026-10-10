@@ -28,7 +28,7 @@ export default async function CallPage({ params }: { params: { id: string } }) {
   const warn = (k: string) => (unconfirmed.has(k) ? <span title="Not confirmed: check with the caller" className="ml-1 text-amber-500">⚠</span> : null);
 
   const prep: [string, React.ReactNode, string][] = [
-    ["Phone", c.phone ? <a href={`tel:${c.phone}`} className="font-semibold text-fuchsia-700 hover:underline">{c.phone}</a> : "–", "📞"],
+    ["Phone", c.phone ? <span className="font-semibold text-ink">{c.phone}</span> : "–", "#"],
     ["Email", c.email ? <a href={`mailto:${c.email}`} className="font-semibold text-fuchsia-700 hover:underline">{c.email}{warn("email")}</a> : "–", "✉️"],
     ["Area", <>{c.location_area ?? "–"}{c.in_service_area === false && <span className="text-rose-600"> (outside area)</span>}{c.in_service_area === null && c.location_area && <span className="text-amber-600"> (unclear)</span>}{warn("location_area")}</>, "📍"],
     ["Property", <>{[c.property, c.carpet_sqft ? `${c.carpet_sqft} sq ft carpet` : null].filter(Boolean).join(" · ") || "–"}{warn("carpet_sqft")}</>, "🏠"],

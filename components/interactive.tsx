@@ -108,7 +108,7 @@ export function PeopleBoard({ view, people }: { view: View; people: Person[] }) 
                     <div className="font-semibold text-ink">{p.name ?? p.phone ?? "Unknown caller"}</div>
                     <div className="truncate text-sm text-muted">{p.latest.decline_reason}</div>
                   </button>
-                  {p.phone && <a href={`tel:${p.phone}`} className="text-sm font-semibold text-fuchsia-700 hover:underline">{p.phone}</a>}
+                  {p.phone && <span className="text-sm font-semibold text-ink/70">{p.phone}</span>}
                   <form action={markContacted}>
                     <input type="hidden" name="id" value={p.latest.id} />
                     <button className="btn-soft">Mark contacted</button>
@@ -251,8 +251,7 @@ function MoodBoard({ people, onOpen }: { people: Person[]; onOpen: (p: Person) =
                 </p>
               </button>
               <div className="mt-auto flex border-t border-violet-50 text-xs font-semibold">
-                {p.phone ? <a href={`tel:${p.phone}`} className="flex-1 py-1.5 text-center text-violet-700 hover:bg-violet-50">📞 Call</a> : <span className="flex-1 py-1.5 text-center text-slate-300">No number</span>}
-                <button onClick={() => onOpen(p)} className="flex-1 border-l border-violet-50 py-1.5 text-fuchsia-700 hover:bg-fuchsia-50">Details →</button>
+                <button onClick={() => onOpen(p)} className="flex-1 py-1.5 text-violet-700 hover:bg-violet-50">View details →</button>
               </div>
             </div>
           </article>
@@ -297,7 +296,7 @@ function Drawer({ person, callId, onPick, onClose }: { person: Person; callId: s
           <div className="text-[11px] font-bold uppercase tracking-[0.2em] text-white/80">Caller</div>
           <h2 className="mt-1 font-display text-3xl font-semibold">{person.name ?? person.phone ?? "Unknown caller"}</h2>
           <div className="mt-2 flex flex-wrap gap-2 text-sm">
-            {person.phone && <a href={`tel:${person.phone}`} className="rounded-full bg-white/20 px-3 py-1 font-semibold hover:bg-white/30">📞 {person.phone}</a>}
+            {person.phone && <span className="rounded-full bg-white/20 px-3 py-1 font-semibold">{person.phone}</span>}
             {person.email && <a href={`mailto:${person.email}`} className="rounded-full bg-white/20 px-3 py-1 font-semibold hover:bg-white/30">✉️ {person.email}</a>}
           </div>
         </div>

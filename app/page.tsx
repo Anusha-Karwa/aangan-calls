@@ -121,7 +121,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
   };
 
   const funnel = [
-    { label: "Answered", value: st.calls, icon: "📞" },
+    { label: "Answered", value: st.calls, icon: "◎" },
     { label: "Qualified", value: st.byStatus.qualified + st.byStatus.borderline, icon: "✓" },
     { label: "Booked", value: st.booked, icon: "📅" },
   ];
@@ -176,7 +176,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
 
               {last && (
                 <Link href={`/calls/${last.id}`} className="card card-hover absolute right-0 top-0 flex w-[250px] items-center gap-3 p-3 sm:-right-3">
-                  <span className="bg-ombre grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-md">📞</span>
+                  <span className="bg-ombre grid h-10 w-10 shrink-0 place-items-center rounded-full text-sm font-bold text-white shadow-md">✦</span>
                   <span className="min-w-0 flex-1">
                     <span className="flex items-center justify-between gap-2">
                       <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Last call</span>
