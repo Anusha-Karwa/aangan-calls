@@ -165,8 +165,8 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
               </ol>
 
               <div className="mt-6 flex flex-wrap gap-2">
-                <Link href="/?view=upcoming" className="btn-ombre px-5 py-2.5">📅 Upcoming consultations</Link>
-                <Link href="/?view=reengage" className="btn-soft px-5 py-2.5">↻ Re-engage{warm ? ` · ${warm}` : ""}</Link>
+                <Link href="/?view=upcoming#callers" className="btn-ombre px-5 py-2.5">📅 Upcoming consultations</Link>
+                <Link href="/?view=reengage#callers" className="btn-soft px-5 py-2.5">↻ Re-engage{warm ? ` · ${warm}` : ""}</Link>
               </div>
             </div>
 
@@ -230,7 +230,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
             {STATUSES.filter((s) => st.byStatus[s]).map((s) => {
               const w = (st.byStatus[s] / Math.max(st.people, 1)) * 100;
               return (
-                <Link key={s} href={href({ view: "all", status: s })} title={`${STATUS_STYLE[s].label}: ${st.byStatus[s]}`}
+                <Link key={s} scroll={false} href={href({ view: "all", status: s })} title={`${STATUS_STYLE[s].label}: ${st.byStatus[s]}`}
                   className={`${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].bar} flex items-center justify-center gap-1.5 px-2 text-xs font-bold text-white transition hover:brightness-110 ${s === "unqualified" || s === "incomplete" ? "!text-ink/70" : ""}`}
                   style={{ width: `${w}%` }}>
                   {w >= 14 && <><span aria-hidden>{STATUS_ICON[s]}</span>{st.byStatus[s]} {STATUS_STYLE[s].label}</>}
@@ -243,7 +243,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
             {STATUSES.map((s) => {
               const on = searchParams.status === s;
               return (
-                <Link key={s} href={on ? href({ status: undefined }) : href({ view: "all", status: s })}
+                <Link key={s} scroll={false} href={on ? href({ status: undefined }) : href({ view: "all", status: s })}
                   className={`group flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${on ? "border-transparent bg-ink text-white" : "border-violet-100 bg-white text-ink hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-sm"}`}>
                   <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] text-white ${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].dot}`} aria-hidden>{STATUS_ICON[s]}</span>
                   {STATUS_STYLE[s].label}
@@ -255,10 +255,11 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
         </section>
 
         {/* 03 · Callers */}
+        <div id="callers" className="scroll-mt-20" />
         <SectionTitle n="03" title="Callers" aside={`${listPeople.length} ${view === "all" ? `in ${monthLabel(month)}` : "people"} · click anyone for details`} />
         <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-violet-100 bg-white/70 p-1 text-sm shadow-sm backdrop-blur">
           {VIEWS.map((v) => (
-            <Link key={v.key} href={href({ view: v.key, status: undefined })}
+            <Link key={v.key} scroll={false} href={href({ view: v.key, status: undefined })}
               className={`whitespace-nowrap rounded-xl px-4 py-2 font-semibold transition ${view === v.key ? "bg-ombre text-white shadow-[0_8px_20px_-8px_rgba(192,38,211,0.8)]" : "text-muted hover:bg-violet-50 hover:text-ink"}`}>
               {v.label}
               {v.key === "reengage" && warm > 0 && <span className="ml-2 rounded-full bg-orange-500 px-1.5 text-[11px] text-white">{warm}</span>}
@@ -267,7 +268,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
         </nav>
 
         {view === "all" && (
-          <form className="mt-4 flex flex-wrap items-center gap-2">
+          <form action="/#callers" className="mt-4 flex flex-wrap items-center gap-2">
             <input type="hidden" name="view" value="all" />
             <input name="q" defaultValue={searchParams.q} placeholder="Search name, phone or area…" className="field w-64" />
             <select name="month" defaultValue={month} className="field">
@@ -279,7 +280,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
               {STATUSES.map((s) => <option key={s} value={s}>{STATUS_STYLE[s].label}</option>)}
             </select>
             <button className="btn-ombre">Apply</button>
-            {(searchParams.q || searchParams.status || searchParams.month) && <Link href="/" className="px-2 text-sm font-semibold text-muted hover:text-ink">Reset</Link>}
+            {(searchParams.q || searchParams.status || searchParams.month) && <Link href="/" scroll={false} className="px-2 text-sm font-semibold text-muted hover:text-ink">Reset</Link>}
           </form>
         )}
 
