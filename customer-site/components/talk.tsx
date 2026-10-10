@@ -143,13 +143,17 @@ export function VoiceCall() {
       <div ref={audioRef} className="hidden" aria-hidden />
 
       {/* 1 · Ask */}
+      {/* No microphone here: nothing starts until the visitor chooses to enquire and types their details. */}
       {phase === "ask" && (
-        <div className="animate-rise flex flex-col items-center gap-5">
-          <Orb label="Enquire" sub="about your space" onClick={() => setPhase("details")} idle />
-          <p className="text-sm text-ink/70">Would you like to tell us about your project? It takes about 3 minutes.</p>
-          <button onClick={() => setPhase("details")} className="rounded-full bg-ink px-6 py-2.5 text-sm font-semibold text-white shadow-lg transition hover:-translate-y-0.5">
-            Yes, I&apos;d like to enquire
+        <div className="animate-rise flex flex-col items-center gap-4">
+          <button
+            onClick={() => setPhase("details")}
+            className="bg-ombre group relative rounded-full px-10 py-4 text-base font-semibold text-white shadow-[0_24px_50px_-20px_rgba(159,122,234,0.8)] transition hover:-translate-y-0.5 hover:brightness-105"
+          >
+            <span className="bg-ombre animate-breathe absolute inset-0 -z-10 rounded-full blur-xl" aria-hidden />
+            Enquire about your space →
           </button>
+          <p className="text-sm text-ink/60">Free 60-minute design consultation · takes about 3 minutes</p>
         </div>
       )}
 
