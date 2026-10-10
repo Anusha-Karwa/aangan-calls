@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { markContacted } from "@/app/actions";
 import type { CallLite, Person } from "@/lib/people";
 import { Flags, Score, ScoreRing, StatusPill } from "./ui";
@@ -27,58 +27,6 @@ export function CountUp({ value, prefix = "", suffix = "" }: { value: number; pr
     return () => cancelAnimationFrame(raf);
   }, [value]);
   return <>{prefix}{n.toLocaleString("en-IN")}{suffix}</>;
-}
-
-// ---------- hero pins (Pinterest-style tags that pop open) ----------
-
-export interface Pin {
-  x: number; // % from left
-  y: number; // % from top
-  title: string;
-  value: string;
-  href?: string;
-}
-
-export function HeroPins({ pins }: { pins: Pin[] }) {
-  const [active, setActive] = useState(0);
-  const paused = useRef(false);
-  useEffect(() => {
-    if (pins.length < 2) return;
-    const t = setInterval(() => {
-      if (!paused.current) setActive((a) => (a + 1) % pins.length);
-    }, 2800);
-    return () => clearInterval(t);
-  }, [pins.length]);
-
-  return (
-    <div className="pointer-events-none absolute inset-0 z-10 hidden lg:block">
-      {pins.map((p, i) => {
-        const open = i === active;
-        const leftSide = p.x > 60;
-        const Tag = p.href ? Link : "div";
-        return (
-          <div key={i} className="pointer-events-auto absolute" style={{ left: `${p.x}%`, top: `${p.y}%` }}
-            onMouseEnter={() => { paused.current = true; setActive(i); }}
-            onMouseLeave={() => { paused.current = false; }}>
-            <Tag href={p.href ?? "#"} className="group relative block" aria-label={`${p.title}: ${p.value}`}>
-              <span className="pin-ring absolute -inset-1 rounded-full bg-white/70" />
-              <span className={`relative grid h-7 w-7 place-items-center rounded-full border-2 border-white shadow-lg transition ${open ? "bg-ombre scale-110" : "bg-white/90"}`}>
-                <span className={`h-2 w-2 rounded-full ${open ? "bg-white" : "bg-fuchsia-500"}`} />
-              </span>
-              {open && (
-                <span key={`${i}-${active}`} className={`animate-pop absolute top-1/2 z-20 w-max max-w-[220px] -translate-y-1/2 rounded-2xl bg-white/95 px-3.5 py-2.5 text-left shadow-xl ring-1 ring-violet-100 backdrop-blur ${leftSide ? "right-10" : "left-10"}`}>
-                  <span className="bg-ombre absolute inset-y-2 left-0 w-1 rounded-full" />
-                  <span className="block pl-1.5 text-[10px] font-bold uppercase tracking-wider text-muted">{p.title}</span>
-                  <span className="block pl-1.5 text-sm font-semibold text-ink">{p.value}</span>
-                  {p.href && <span className="block pl-1.5 text-[11px] font-semibold text-fuchsia-600">Open →</span>}
-                </span>
-              )}
-            </Tag>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 // ---------- people board + details drawer ----------

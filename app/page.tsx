@@ -4,9 +4,10 @@ import { env } from "@/lib/env";
 import { groupPeople, type Person } from "@/lib/people";
 import { inMonth, monthKey, monthStats } from "@/lib/stats";
 import { formatIst, toIst } from "@/lib/time";
-import type { CallStatus } from "@/lib/types";
-import { STATUS_STYLE, VideoBackdrop } from "@/components/ui";
-import { CountUp, HeroPins, PeopleBoard, type Pin } from "@/components/interactive";
+import { effectiveStatus, type CallStatus } from "@/lib/types";
+import { STATUS_STYLE, StatusPill, VideoBackdrop } from "@/components/ui";
+import { CountUp, PeopleBoard } from "@/components/interactive";
+import { BookingCalendar, type CalendarDay, type DayPin } from "@/components/hero";
 import { TopNav } from "@/components/nav";
 
 export const dynamic = "force-dynamic";
@@ -48,59 +49,133 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
   // Upcoming + re-engage are not month-bound: they're about what to do next.
   const everyone = groupPeople(all);
   const listPeople = view === "all" ? search(monthPeople, searchParams) : everyone;
-  const next = everyone
-    .flatMap((p) => p.calls.filter((c) => c.booking_start && Date.parse(c.booking_start) > Date.now() && c.booking_status !== "cancelled").map((c) => ({ p, c })))
-    .sort((a, b) => a.c.booking_start!.localeCompare(b.c.booking_start!))[0];
   const warm = everyone.filter((p) => p.latest.status === "unqualified" && p.latest.reengage_rating === "warm" && !p.latest.reengaged_at).length;
   const months = Array.from(new Set([monthKey(new Date()), ...all.map((r) => monthKey(r.started_at ?? r.created_at))])).sort().reverse();
 
-  const pins: Pin[] = [
-    { x: 66, y: 22, title: "Next consultation", value: next ? `${next.p.name ?? next.p.phone} · ${formatIst(next.c.booking_start)}` : "None booked yet", href: "/?view=upcoming" },
-    { x: 84, y: 50, title: `Qualified · ${monthLabel(month)}`, value: `${st.byStatus.qualified} of ${st.people} callers`, href: `/?month=${month}&status=qualified` },
-    { x: 70, y: 70, title: "Warm leads", value: warm ? `${warm} to re-engage` : "All caught up", href: "/?view=reengage" },
-    { x: 90, y: 20, title: "Asked about price", value: `${st.askedPricePct}% · never quoted`, href: `/?month=${month}` },
-  ];
+  // Booking calendar for the hero: pins for calls received and consultations booked that month.
+  const calMonth = month === "all" ? monthKey(new Date()) : month;
+  const [cy, cm] = calMonth.split("-").map(Number);
+  const daysInMonth = new Date(Date.UTC(cy, cm, 0)).getUTCDate();
+  const offset = (new Date(Date.UTC(cy, cm - 1, 1)).getUTCDay() + 6) % 7; // Monday-first
+  const todayKey = toIst(new Date()).toISOString().slice(0, 10);
+  const istDay = (iso: string) => toIst(new Date(iso)).toISOString().slice(0, 10);
+  const istTime = (iso: string) => new Intl.DateTimeFormat("en-IN", { timeZone: "Asia/Kolkata", hour: "numeric", minute: "2-digit", hour12: true }).format(new Date(iso));
+  const calendar: CalendarDay[] = Array.from({ length: daysInMonth }, (_, i) => {
+    const key = `${calMonth}-${String(i + 1).padStart(2, "0")}`;
+    const pins: DayPin[] = [
+      ...all.filter((r) => r.booking_start && r.booking_status !== "cancelled" && istDay(r.booking_start) === key).map((r) => ({
+        id: r.id, kind: "booking" as const, name: r.caller_name ?? r.phone ?? "Caller", time: istTime(r.booking_start!),
+        detail: r.booking_type === "site_visit" ? "Site visit" : r.booking_type === "studio" ? "Studio visit" : "Consultation",
+      })),
+      ...all.filter((r) => istDay(r.started_at ?? r.created_at) === key).map((r) => {
+        const s = effectiveStatus(r);
+        return {
+          id: r.id, kind: "call" as const, name: r.caller_name ?? r.phone ?? "Caller", time: istTime(r.started_at ?? r.created_at),
+          detail: [s ? STATUS_STYLE[s].label : "Processing", r.location_area].filter(Boolean).join(" · "),
+        };
+      }),
+    ];
+    return { day: i + 1, isToday: key === todayKey, pins };
+  });
+  const last = all.find((r) => r.status);
+  const nextBooking = everyone
+    .flatMap((p) => p.calls.filter((c) => c.booking_start && Date.parse(c.booking_start) > Date.now() && c.booking_status !== "cancelled").map((c) => ({ p, c })))
+    .sort((a, b) => a.c.booking_start!.localeCompare(b.c.booking_start!))[0];
 
   const href = (patch: Partial<Search>) => {
     const p = new URLSearchParams(Object.entries({ ...searchParams, ...patch }).filter(([, v]) => v) as [string, string][]);
     return `/?${p}`;
   };
 
+  const funnel = [
+    { label: "Answered", value: st.calls, icon: "📞" },
+    { label: "Qualified", value: st.byStatus.qualified + st.byStatus.borderline, icon: "✓" },
+    { label: "Booked", value: st.booked, icon: "📅" },
+  ];
+
   return (
     <>
       <TopNav />
       <main className="mx-auto max-w-7xl px-4 pb-20">
-        {/* Hero: video + Pinterest-style pins */}
-        <section className="relative mt-5 overflow-hidden rounded-[28px] shadow-[0_30px_60px_-30px_rgba(91,33,182,0.45)]">
-          <VideoBackdrop src={env("HERO_VIDEO_URL")} />
-          <HeroPins pins={pins} />
-          <div className="relative z-[5] flex min-h-[340px] flex-col justify-end p-6 pb-24 sm:p-10 sm:pb-24">
-            <div className="max-w-xl animate-rise">
-              <span className="inline-flex items-center gap-2 rounded-full bg-white/85 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.2em] text-violet-700 shadow-sm backdrop-blur">
-                <span className="bg-ombre h-1.5 w-1.5 rounded-full" />{monthLabel(month)}
+        {/* Hero: the studio's call desk */}
+        <section className="card floorplan animate-rise relative mt-5 overflow-hidden rounded-[28px] p-6 sm:p-10">
+          <div className="grid items-center gap-10 lg:grid-cols-[1.05fr_1fr]">
+            {/* Left: greeting + call-to-booking funnel */}
+            <div>
+              <span className="inline-flex items-center gap-2 rounded-full bg-violet-50 px-3 py-1 text-[11px] font-bold uppercase tracking-[0.18em] text-violet-700 ring-1 ring-violet-100">
+                <span className="bg-ombre h-1.5 w-1.5 rounded-full" />Call desk · {monthLabel(month)}
               </span>
-              <h1 className="mt-3 font-display text-4xl font-semibold leading-tight text-white drop-shadow-sm sm:text-6xl">
-                {greeting()}, <span className="bg-gradient-to-r from-violet-200 via-fuchsia-200 to-orange-200 bg-clip-text text-transparent">designer.</span>
+              <h1 className="mt-4 font-display text-4xl font-semibold leading-[1.05] text-ink sm:text-[56px]">
+                {greeting()},<br /><span className="text-ombre">designer.</span>
               </h1>
-              <p className="mt-2 text-sm font-medium text-white/90 sm:text-base">
-                {st.people} caller{st.people === 1 ? "" : "s"} this period · {st.booked} consultation{st.booked === 1 ? "" : "s"} booked
+              <p className="mt-3 max-w-md text-[15px] text-muted">
+                {nextBooking
+                  ? <>Your next consultation is with <strong className="text-ink">{nextBooking.p.name ?? nextBooking.p.phone}</strong> on <strong className="text-ink">{formatIst(nextBooking.c.booking_start)}</strong>.</>
+                  : <>Every call is answered, qualified and booked into a consultation, and you get the brief before you call back.</>}
               </p>
+
+              <ol className="mt-7 flex flex-wrap items-stretch gap-2 sm:flex-nowrap">
+                {funnel.map((f, i) => (
+                  <li key={f.label} className="flex flex-1 items-center gap-2">
+                    <div className="flex-1 rounded-2xl border border-violet-100 bg-white px-4 py-3 shadow-sm">
+                      <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-wider text-muted">
+                        <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] ${i === 2 ? "bg-ombre text-white" : "bg-violet-50 text-violet-700"}`}>{f.icon}</span>
+                        {f.label}
+                      </div>
+                      <div className="text-ombre mt-1 font-display text-3xl font-semibold tabular-nums"><CountUp value={f.value} /></div>
+                    </div>
+                    {i < funnel.length - 1 && <span className="bg-ombre hidden h-0.5 w-5 shrink-0 rounded-full sm:block" />}
+                  </li>
+                ))}
+              </ol>
+
+              <div className="mt-6 flex flex-wrap gap-2">
+                <Link href="/?view=upcoming" className="btn-ombre px-5 py-2.5">📅 Upcoming consultations</Link>
+                <Link href="/?view=reengage" className="btn-soft px-5 py-2.5">↻ Re-engage{warm ? ` · ${warm}` : ""}</Link>
+              </div>
+            </div>
+
+            {/* Right: the studio, with the last call and the booking calendar pinned to it */}
+            <div className="relative mx-auto w-full max-w-[540px] pb-32 pt-8">
+              <div className="relative ml-auto aspect-[4/3] w-[88%] overflow-hidden rounded-[26px] shadow-[0_30px_60px_-28px_rgba(91,33,182,0.55)] ring-8 ring-white">
+                <VideoBackdrop src={env("HERO_VIDEO_URL")} tone="light" />
+              </div>
+
+              {last && (
+                <Link href={`/calls/${last.id}`} className="card card-hover absolute right-0 top-0 flex w-[250px] items-center gap-3 p-3 sm:-right-3">
+                  <span className="bg-ombre grid h-10 w-10 shrink-0 place-items-center rounded-full text-white shadow-md">📞</span>
+                  <span className="min-w-0 flex-1">
+                    <span className="flex items-center justify-between gap-2">
+                      <span className="text-[10px] font-bold uppercase tracking-wider text-muted">Last call</span>
+                      <span className="wave flex items-center gap-[3px]" aria-hidden><span /><span /><span /><span /><span /></span>
+                    </span>
+                    <span className="block truncate text-sm font-semibold text-ink">{last.caller_name ?? last.phone ?? "Caller"}</span>
+                    <span className="mt-0.5 flex items-center gap-1.5">
+                      <StatusPill status={effectiveStatus(last)} />
+                      <span className="truncate text-[11px] text-muted">{last.location_area ?? ""}</span>
+                    </span>
+                  </span>
+                </Link>
+              )}
+
+              <div className="absolute bottom-0 left-0">
+                <BookingCalendar title={monthLabel(calMonth)} offset={offset} days={calendar} />
+              </div>
             </div>
           </div>
         </section>
 
         {/* KPI tiles */}
-        <section className="relative z-20 -mt-14 grid grid-cols-2 gap-3 px-2 sm:px-6 lg:grid-cols-5">
+        <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
             { label: "Callers", value: <CountUp value={st.people} />, sub: `${st.calls} calls · ${st.afterHoursPct}% after hours` },
-            { label: "Qualified", value: <CountUp value={st.byStatus.qualified} />, sub: `+${st.byStatus.borderline} borderline · ${st.byStatus.escalated} escalated` },
-            { label: "Booked", value: <CountUp value={st.booked} />, sub: `${st.bookingRate}% booking rate` },
-            { label: "Call cost", value: <CountUp value={st.totalCost} prefix="₹" />, sub: `${st.avgMinutes} min avg${st.costPerBooking !== null ? ` · ₹${st.costPerBooking}/booking` : ""}` },
-            { label: "Asked price", value: <CountUp value={st.askedPricePct} suffix="%" />, sub: "no number ever quoted" },
+            { label: "Booking rate", value: <CountUp value={st.bookingRate} suffix="%" />, sub: `${st.booked} of ${st.byStatus.qualified + st.byStatus.borderline} qualified callers booked` },
+            { label: "Asked about price", value: <CountUp value={st.askedPricePct} suffix="%" />, sub: "deflected · no number ever quoted" },
+            { label: "Call cost", value: <CountUp value={st.totalCost} prefix="₹" />, sub: `${st.avgMinutes} min avg${st.costPerBooking !== null ? ` · ₹${st.costPerBooking} per booking` : ""}` },
           ].map((t, i) => (
-            <div key={t.label} className="card card-hover animate-rise p-4" style={{ animationDelay: `${i * 70}ms` }}>
+            <div key={t.label} className="card card-hover animate-rise p-4" style={{ animationDelay: `${i * 60}ms` }}>
               <div className="text-[11px] font-bold uppercase tracking-wider text-muted">{t.label}</div>
-              <div className="text-ombre mt-1 font-display text-4xl font-semibold tabular-nums">{t.value}</div>
+              <div className="text-ombre mt-1 font-display text-3xl font-semibold tabular-nums">{t.value}</div>
               <div className="mt-1 text-xs text-muted">{t.sub}</div>
             </div>
           ))}
