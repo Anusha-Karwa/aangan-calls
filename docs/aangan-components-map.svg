@@ -1,0 +1,102 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1700" height="915" viewBox="0 0 1700 915" font-family="Segoe UI, Arial, sans-serif">
+  <defs>
+    <marker id="ah" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M0 0L10 5L0 10Z" fill="#1e2a44"/>
+    </marker>
+  </defs>
+  <rect width="1700" height="915" fill="#ffffff"/>
+  <text x="850" y="52" text-anchor="middle" font-size="32" font-weight="700" fill="#14213d">Aangan Studio · Voice Agent — Components Map</text>
+
+  <!-- lanes -->
+  <rect x="20" y="140" width="1660" height="125" fill="#eef0ff"/>
+  <rect x="20" y="265" width="1660" height="125" fill="#fff1ec"/>
+  <rect x="20" y="390" width="1660" height="125" fill="#fffbe6"/>
+  <rect x="20" y="515" width="1660" height="125" fill="#eafaf0"/>
+  <rect x="20" y="640" width="1660" height="125" fill="#fdeef4"/>
+  <rect x="20" y="765" width="1660" height="125" fill="#eaf3ff"/>
+
+  <!-- column grid -->
+  <g stroke="#d6dae6" stroke-width="1">
+    <line x1="463.3" y1="140" x2="463.3" y2="890"/><line x1="706.7" y1="140" x2="706.7" y2="890"/>
+    <line x1="950" y1="140" x2="950" y2="890"/><line x1="1193.3" y1="140" x2="1193.3" y2="890"/>
+    <line x1="1436.7" y1="140" x2="1436.7" y2="890"/>
+  </g>
+
+  <!-- header -->
+  <rect x="20" y="80" width="1660" height="60" rx="8" fill="#1e2a44"/>
+  <g fill="#ffffff" font-size="21" font-weight="600" text-anchor="middle">
+    <text x="120" y="117">Actor</text>
+    <text x="341.7" y="117">Trigger</text>
+    <text x="585" y="117">Input</text>
+    <text x="828.3" y="117">Context</text>
+    <text x="1071.7" y="117">Processing</text>
+    <text x="1315" y="117">AI</text>
+    <text x="1558.3" y="117">Output</text>
+  </g>
+  <line x1="220" y1="80" x2="220" y2="140" stroke="#3a4a6b"/>
+  <g stroke="#3a4a6b"><line x1="463.3" y1="80" x2="463.3" y2="140"/><line x1="706.7" y1="80" x2="706.7" y2="140"/><line x1="950" y1="80" x2="950" y2="140"/><line x1="1193.3" y1="80" x2="1193.3" y2="140"/><line x1="1436.7" y1="80" x2="1436.7" y2="140"/></g>
+
+  <!-- actor column -->
+  <rect x="20" y="140" width="200" height="750" fill="#1e2a44"/>
+  <g stroke="#3a4a6b"><line x1="20" y1="265" x2="220" y2="265"/><line x1="20" y1="390" x2="220" y2="390"/><line x1="20" y1="515" x2="220" y2="515"/><line x1="20" y1="640" x2="220" y2="640"/><line x1="20" y1="765" x2="220" y2="765"/></g>
+  <g text-anchor="middle" fill="#ffffff">
+    <text x="120" y="198" font-size="21" font-weight="700">Customer</text><text x="120" y="224" font-size="16" fill="#c9d2e6">(Website visitor)</text>
+    <text x="120" y="323" font-size="21" font-weight="700">Voice Agent</text><text x="120" y="349" font-size="16" fill="#c9d2e6">(Vaani)</text>
+    <text x="120" y="448" font-size="21" font-weight="700">System</text><text x="120" y="474" font-size="16" fill="#c9d2e6">(Studio backend)</text>
+    <text x="120" y="573" font-size="21" font-weight="700">AI Model</text><text x="120" y="599" font-size="16" fill="#c9d2e6">(Gemini)</text>
+    <text x="120" y="690" font-size="21" font-weight="700">Services</text><text x="120" y="716" font-size="16" fill="#c9d2e6">(Cal.com, Resend,</text><text x="120" y="736" font-size="16" fill="#c9d2e6">HubSpot)</text>
+    <text x="120" y="823" font-size="21" font-weight="700">Designer</text><text x="120" y="849" font-size="16" fill="#c9d2e6">(Studio team)</text>
+  </g>
+
+  <!-- boxes -->
+  <g font-size="16.5" fill="#1f2433" text-anchor="middle">
+    <!-- Customer · Trigger -->
+    <rect x="239" y="156" width="205" height="92" rx="10" fill="#e3e6ff" stroke="#5b5bd6" stroke-width="2"/>
+    <text x="341.7" y="185">Clicks “Enquire”,</text><text x="341.7" y="207">types name, email</text><text x="341.7" y="229">and phone</text>
+    <!-- Customer · Input -->
+    <rect x="482.3" y="156" width="205" height="92" rx="10" fill="#ffffff" stroke="#5b8def" stroke-width="2"/>
+    <text x="585" y="185">Speaks: project,</text><text x="585" y="207">area, size, timeline,</text><text x="585" y="229">decision-maker</text>
+
+    <!-- Voice agent · Context -->
+    <rect x="725.7" y="281" width="205" height="92" rx="10" fill="#ffe4d9" stroke="#e8743b" stroke-width="2"/>
+    <text x="828.3" y="310">Agent prompt +</text><text x="828.3" y="332">live free slots +</text><text x="828.3" y="354">typed caller details</text>
+    <!-- Voice agent · Processing -->
+    <rect x="969" y="281" width="205" height="92" rx="10" fill="#ffe4d9" stroke="#e8743b" stroke-width="2"/>
+    <text x="1071.7" y="310">Asks one question</text><text x="1071.7" y="332">at a time, qualifies,</text><text x="1071.7" y="354">reserves a slot</text>
+
+    <!-- System · Input -->
+    <rect x="482.3" y="406" width="205" height="92" rx="10" fill="#fff3c4" stroke="#e0a800" stroke-width="2"/>
+    <text x="585" y="435">Slots sync: free</text><text x="585" y="457">times from Cal.com</text><text x="585" y="479">into the agent</text>
+    <!-- System · Processing -->
+    <rect x="969" y="406" width="205" height="92" rx="10" fill="#fff3c4" stroke="#e0a800" stroke-width="2"/>
+    <text x="1071.7" y="435">Webhook verifies,</text><text x="1071.7" y="457">stores transcript</text><text x="1071.7" y="479">+ recording</text>
+    <!-- System · Output -->
+    <rect x="1455.7" y="406" width="205" height="92" rx="10" fill="#fff3c4" stroke="#e0a800" stroke-width="2"/>
+    <text x="1558.3" y="435">Rubric scores the lead</text><text x="1558.3" y="457">(no AI), then books</text><text x="1558.3" y="479">the slot in Cal.com</text>
+
+    <!-- AI · AI -->
+    <rect x="1212.3" y="531" width="205" height="92" rx="10" fill="#d9f5e3" stroke="#2fa65a" stroke-width="2"/>
+    <text x="1315" y="560">Gemini extracts fields,</text><text x="1315" y="582">5-line summary and</text><text x="1315" y="604">the agreed slot</text>
+
+    <!-- Services · Output -->
+    <rect x="1455.7" y="656" width="205" height="92" rx="10" fill="#fbd9e8" stroke="#d6457f" stroke-width="2"/>
+    <text x="1558.3" y="685">Cal.com invite, emails</text><text x="1558.3" y="707">to designer + customer,</text><text x="1558.3" y="729">HubSpot deal</text>
+
+    <!-- Designer · Output -->
+    <rect x="1455.7" y="781" width="205" height="92" rx="10" fill="#fde2dc" stroke="#e5533d" stroke-width="2"/>
+    <text x="1558.3" y="810">Dashboard: callers,</text><text x="1558.3" y="832">prep card, recording,</text><text x="1558.3" y="854">transcript</text>
+  </g>
+
+  <!-- flow -->
+  <g fill="none" stroke="#1e2a44" stroke-width="2" stroke-dasharray="7 5" marker-end="url(#ah)">
+    <path d="M341.7 248 V327 H721"/>
+    <path d="M585 248 V270 H1071.7 V276"/>
+    <path d="M585 406 V350 H721"/>
+    <path d="M930.7 327 H964"/>
+    <path d="M1071.7 373 V401"/>
+    <path d="M1071.7 498 V577 H1207"/>
+    <path d="M1315 531 V452 H1450"/>
+    <path d="M1558.3 498 V651"/>
+    <path d="M1558.3 748 V776"/>
+  </g>
+</svg>
