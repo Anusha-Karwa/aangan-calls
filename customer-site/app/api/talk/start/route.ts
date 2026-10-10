@@ -50,7 +50,7 @@ export async function POST(req: Request) {
       secondary_language: primary === "en" ? "hi" : "en",
       voice_gender: "female",
       welcome_message: GREETING,
-      welcome_interruptible: true,
+      welcome_interruptible: false, // a stray "okay" or speaker echo must not chop the greeting
       voice_speed: 1.0,
       metadata: { channel: "website" },
     }),

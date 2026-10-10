@@ -24,13 +24,16 @@ describe("normaliseVaaniPayload", () => {
     const c = normaliseVaaniPayload(DOCS_SAMPLE);
     expect(c.event).toBe("call_postprocessing");
     expect(c.callId).toBe("outbound-1784899978-36cec598");
-    expect(c.durationSec).toBe(55); // milliseconds -> seconds
+    expect(c.durationSec).toBe(55); // milliseconds -> seconds (docs sample)
     expect(c.startedAt.toISOString()).toBe("2026-07-24T13:33:27.278Z"); // timestamp minus duration
     expect(c.transcript).toBe("Agent: Hi! how can I help you today?\nCaller: Yeah. How are you?\nAgent: I am doing great.");
     expect(c.recordingUrl).toContain("/api/stream/");
     expect(c.entities).toEqual({ name: "Ayush Awasthi" });
   });
 
+  it("real payloads in seconds stay seconds", () => {
+    expect(normaliseVaaniPayload({ event: "call_postprocessing", call_id: "w", data: { call_duration: 13.66 } }).durationSec).toBe(14);
+  });
   it("call_ended reports seconds", () => {
     expect(normaliseVaaniPayload({ event: "call_ended", room_name: "r1", call_duration: 42.5 }).durationSec).toBe(43);
   });

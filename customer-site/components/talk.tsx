@@ -68,7 +68,7 @@ export function VoiceCall() {
     setPhase("connecting");
     try {
       // Ask for the mic first so the browser prompt appears right after the click.
-      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: { echoCancellation: true, noiseSuppression: true } });
       stream.getTracks().forEach((t) => t.stop());
 
       const res = await fetch("/api/talk/start", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ language: lang }) });
@@ -85,7 +85,8 @@ export function VoiceCall() {
       });
       room.on(RoomEvent.Disconnected, () => hangUp(true));
       await room.connect(j.url, j.token);
-      await room.localParticipant.setMicrophoneEnabled(true);
+      // Echo cancellation + noise suppression stop the assistant hearing itself through laptop speakers.
+      await room.localParticipant.setMicrophoneEnabled(true, { echoCancellation: true, noiseSuppression: true, autoGainControl: true });
       if (j.captions) openCaptions(j.captions);
       setPhase("live");
     } catch (e) {

@@ -21,7 +21,9 @@ async function main() {
     identity: {
       system_prompt: buildSystemPrompt(),
       personality: { tone: "warm", style: "brief, natural, one question at a time" },
-      greeting_message: { agent_message: GREETING, agent_speech_delay: 1, user_speech_delay: 1, interruptible: true, let_user_speak_first: false },
+      // The greeting is not interruptible: a stray "okay" or speaker echo must not chop it.
+      // user_speech_delay = silence (s) after the caller stops before the agent replies.
+      greeting_message: { agent_message: GREETING, agent_speech_delay: 1, user_speech_delay: 2, interruptible: false, let_user_speak_first: false },
     },
     senses_capabilities: {
       language: "en",
@@ -48,7 +50,37 @@ async function main() {
   const text = await res.text();
   if (!res.ok) throw new Error(`Vaani ${res.status}: ${text.slice(0, 400)}`);
   const j = JSON.parse(text);
+  const id = agentId ?? j.agent_id;
   console.log(agentId ? `Updated persona of agent ${agentId}` : `Created agent ${j.agent_id} (${j.agent_name})`);
+
+  // Turn-taking: Vaani's defaults ("fast" eagerness, 10 s idle hang-up) make the agent talk over
+  // callers who pause mid-sentence ("My name is… Anusha") and hang up on thinking callers.
+  const experience = {
+    conversational_experience: {
+      eagerness_to_speak: "slow",
+      filler_words: { filler_words_frequency: 0.1 },
+    },
+    settings: {
+      idle_conversation_settings: {
+        pulse_check: true,
+        end_conversation_on_idle: true,
+        idle_call_warning_timeout: 12,
+        idle_call_hangup_timeout: 25,
+        initial_idle_call_warning_timeout: 10,
+        initial_idle_call_hungup_timeout: 30,
+        idle_call_warning_message: "Are you still there? Take your time.",
+        idle_call_hangup_message: "I'll end the call for now. Feel free to call Aangan Studio back anytime.",
+      },
+      call_settings: { max_call_duration: 12, max_duration_enabled: true },
+    },
+  };
+  const ex = await fetch(`${BASE}/api/agent/${id}/experience`, {
+    method: "PATCH",
+    headers: { "X-API-Key": key, "Content-Type": "application/json" },
+    body: JSON.stringify(experience),
+  });
+  if (!ex.ok) throw new Error(`Vaani experience ${ex.status}: ${(await ex.text()).slice(0, 400)}`);
+  console.log("Updated experience (turn-taking, idle, max duration)");
 }
 
 main().catch((e) => { console.error(e.message); process.exit(1); });

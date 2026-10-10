@@ -78,9 +78,10 @@ export function normaliseVaaniPayload(body: unknown): NormalisedCall {
   const data = isObj(b.data) ? b.data : b;
   const event = String(b.event ?? b.type ?? "call_postprocessing");
 
-  // call_postprocessing reports milliseconds; call_ended reports seconds.
+  // Docs say call_postprocessing reports milliseconds, but real WebRTC payloads send seconds
+  // (e.g. 13.66). Treat values over 10,000 as milliseconds (no call lasts 2.7+ hours).
   const rawDur = Number(data.call_duration ?? b.call_duration);
-  const durationSec = Number.isFinite(rawDur) ? Math.round(event === "call_ended" ? rawDur : rawDur / 1000) : null;
+  const durationSec = Number.isFinite(rawDur) ? Math.round(rawDur > 10_000 ? rawDur / 1000 : rawDur) : null;
 
   const ts = str(b.timestamp) ?? str(data.timestamp);
   const end = ts ? new Date(ts) : new Date();
