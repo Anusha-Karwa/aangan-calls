@@ -30,9 +30,6 @@ function SectionTitle({ n, title, aside }: { n: string; title: string; aside?: s
       <span className="text-ombre font-display text-sm font-semibold">{n}</span>
       <h2 className="font-display text-xl font-semibold text-ink">{title}</h2>
       <span className="mb-1.5 hidden h-px flex-1 bg-gradient-to-r from-violet-200 via-fuchsia-200 to-transparent sm:block" />
-      <span className="mb-1 flex items-center gap-1" aria-hidden>
-        {["bg-violet-500", "bg-fuchsia-500", "bg-rose-400", "bg-orange-400"].map((c) => <span key={c} className={`h-2.5 w-2.5 rounded-full ${c} ring-2 ring-white`} />)}
-      </span>
       {aside && <span className="w-full text-xs text-muted sm:w-auto">{aside}</span>}
     </div>
   );
@@ -226,7 +223,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
 
         {/* 02 · Callers: tabs, one filter panel (search + month + status), and the board right below */}
         <div id="callers" className="scroll-mt-20" />
-        <SectionTitle n="02" title="Callers" aside={`${listPeople.length} ${view === "all" ? `in ${monthLabel(month)}` : "people"} · click anyone for details`} />
+        <SectionTitle n="02" title="Callers" />
         <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-violet-100 bg-white/70 p-1 text-[13px] shadow-sm backdrop-blur">
           {VIEWS.map((v) => (
             <Link key={v.key} scroll={false} href={href({ view: v.key, status: undefined })}
@@ -251,7 +248,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
               <div className="flex h-1.5 gap-[2px] overflow-hidden rounded-full bg-violet-50">
                 {STATUSES.filter((s) => st.byStatus[s]).map((s) => (
                   <Link key={s} scroll={false} href={href({ view: "all", status: s })} title={`${STATUS_STYLE[s].label}: ${st.byStatus[s]}`}
-                    className={`${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].bar} transition hover:brightness-110 ${searchParams.status && searchParams.status !== s ? "opacity-30" : ""}`}
+                    className={`${STATUS_STYLE[s].bar} transition hover:brightness-110 ${searchParams.status && searchParams.status !== s ? "opacity-30" : ""}`}
                     style={{ width: `${(st.byStatus[s] / Math.max(st.people, 1)) * 100}%` }} />
                 ))}
               </div>
@@ -265,7 +262,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
                   return (
                     <Link key={s} scroll={false} href={on ? href({ status: undefined }) : href({ view: "all", status: s })}
                       className={`flex items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs font-semibold transition ${on ? "border-transparent bg-ink text-white" : "border-violet-100 bg-white text-ink hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-sm"}`}>
-                      <span className={`grid h-4 w-4 place-items-center rounded-full text-[9px] text-white ${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].dot}`} aria-hidden>{STATUS_ICON[s]}</span>
+                      <span className={`grid h-4 w-4 place-items-center rounded-full text-[9px] text-white ${STATUS_STYLE[s].dot}`} aria-hidden>{STATUS_ICON[s]}</span>
                       {STATUS_STYLE[s].label}
                       <span className={on ? "text-white/70" : "text-muted"}>{st.byStatus[s]}</span>
                     </Link>
@@ -277,6 +274,16 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
         )}
 
         <PeopleBoard view={view} people={listPeople} />
+
+        <footer className="mt-8 flex flex-wrap items-center justify-between gap-3 border-t border-violet-100 pt-4 text-xs text-muted">
+          <span className="flex items-center gap-2">
+            <span className="flex items-center gap-1" aria-hidden>
+              {["bg-violet-500", "bg-fuchsia-500", "bg-rose-400", "bg-orange-400"].map((c) => <span key={c} className={`h-2.5 w-2.5 rounded-full ${c} ring-2 ring-white`} />)}
+            </span>
+            {listPeople.length} {view === "all" ? `in ${monthLabel(month)}` : "people"} · click anyone for details
+          </span>
+          <span>Aangan Studio · Interiors · Pune</span>
+        </footer>
       </main>
     </>
   );

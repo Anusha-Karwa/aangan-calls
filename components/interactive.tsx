@@ -209,11 +209,11 @@ export function PeopleBoard({ view, people }: { view: View; people: Person[] }) 
 
 // Mood board: callers pinned like a designer's reference board (masonry columns).
 const SWATCH: Record<string, string> = {
-  qualified: "bg-ombre",
-  borderline: "bg-gradient-to-r from-amber-300 to-orange-400",
-  escalated: "bg-gradient-to-r from-rose-400 to-rose-600",
-  unqualified: "bg-gradient-to-r from-slate-200 to-slate-300",
-  incomplete: "bg-gradient-to-r from-zinc-200 to-zinc-300",
+  qualified: "bg-violet-600",
+  borderline: "bg-amber-400",
+  escalated: "bg-red-600",
+  unqualified: "bg-gray-400",
+  incomplete: "bg-stone-200",
 };
 
 function MoodBoard({ people, onOpen }: { people: Person[]; onOpen: (p: Person) => void }) {

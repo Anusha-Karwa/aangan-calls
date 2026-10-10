@@ -4,11 +4,11 @@ import { AanganLogo } from "./logo";
 // ---------- status + flags (light theme, vivid) ----------
 
 export const STATUS_STYLE: Record<CallStatus, { pill: string; dot: string; bar: string; label: string }> = {
-  qualified: { pill: "bg-emerald-50 text-emerald-700 ring-emerald-200", dot: "bg-emerald-500", bar: "bg-emerald-500", label: "Qualified" },
+  qualified: { pill: "bg-violet-50 text-violet-700 ring-violet-200", dot: "bg-violet-600", bar: "bg-violet-600", label: "Qualified" },
   borderline: { pill: "bg-amber-50 text-amber-700 ring-amber-200", dot: "bg-amber-500", bar: "bg-amber-400", label: "Borderline" },
-  unqualified: { pill: "bg-slate-100 text-slate-600 ring-slate-200", dot: "bg-slate-400", bar: "bg-slate-300", label: "Unqualified" },
-  escalated: { pill: "bg-rose-50 text-rose-700 ring-rose-200", dot: "bg-rose-500", bar: "bg-rose-500", label: "Escalated" },
-  incomplete: { pill: "bg-zinc-100 text-zinc-500 ring-zinc-200", dot: "bg-zinc-400", bar: "bg-zinc-300", label: "Incomplete" },
+  unqualified: { pill: "bg-gray-100 text-gray-600 ring-gray-200", dot: "bg-gray-400", bar: "bg-gray-400", label: "Unqualified" },
+  escalated: { pill: "bg-red-50 text-red-700 ring-red-200", dot: "bg-red-600", bar: "bg-red-600", label: "Escalated" },
+  incomplete: { pill: "bg-stone-50 text-stone-400 ring-stone-200", dot: "bg-stone-300", bar: "bg-stone-200", label: "Incomplete" },
 };
 
 export function StatusPill({ status, overridden }: { status: CallStatus | null; overridden?: boolean }) {
