@@ -28,6 +28,24 @@ export async function POST(req: Request) {
 
   const call = normaliseVaaniPayload(body);
 
+  // From the customer site (not Vaani): the details the caller typed before a website voice chat.
+  if (call.event === "website_lead") {
+    const b = body as { name?: string; email?: string; phone?: string };
+    const existing = await db().getCallByVaaniId(call.callId);
+    if (!existing?.transcript) {
+      await db().upsertCall({
+        vaani_call_id: call.callId,
+        channel: "website",
+        caller_name: String(b.name ?? "").slice(0, 60) || null,
+        email: String(b.email ?? "").slice(0, 120).toLowerCase() || null,
+        phone: String(b.phone ?? "").replace(/[^\d+]/g, "").slice(0, 20) || null,
+        started_at: existing?.started_at ?? new Date().toISOString(),
+        after_hours: existing?.after_hours ?? isAfterHours(new Date()),
+      });
+    }
+    return NextResponse.json({ ok: true, event: call.event });
+  }
+
   if (call.event === "call_started" || call.event.startsWith("human_transfer")) {
     const existing = await db().getCallByVaaniId(call.callId);
     if (!existing?.transcript) {
@@ -35,7 +53,7 @@ export async function POST(req: Request) {
       if (call.transferred) flags.add("transferred");
       await db().upsertCall({
         vaani_call_id: call.callId,
-        channel: "phone",
+        channel: existing?.channel ?? "phone",
         phone: existing?.phone ?? (call.event === "call_started" ? call.callerPhone : null),
         started_at: existing?.started_at ?? new Date().toISOString(),
         after_hours: existing?.after_hours ?? isAfterHours(new Date()),
@@ -54,12 +72,15 @@ export async function POST(req: Request) {
   const startedAt = stubStart && Math.abs(stubStart.getTime() - call.startedAt.getTime()) < 30 * 60_000 ? stubStart : call.startedAt;
   const input: CallInput = {
     sourceId: call.callId,
-    channel: "phone",
+    channel: stub?.channel === "website" ? "website" : "phone",
     startedAt,
     durationSec: call.durationSec,
     transcript: call.transcript,
     recordingUrl: call.recordingUrl,
-    phone: call.callerPhone ?? stub?.phone ?? null,
+    // Website calls: the caller typed these before the call; they beat anything heard on the line.
+    name: stub?.caller_name ?? null,
+    email: stub?.email ?? null,
+    phone: stub?.phone ?? call.callerPhone ?? null,
     transferred: call.transferred || Boolean(stub?.flags.includes("transferred")),
     failed: !call.transcript.trim(),
     raw: body,

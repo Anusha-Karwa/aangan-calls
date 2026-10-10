@@ -14,7 +14,7 @@ import { effectiveStatus, type CallRow } from "./types";
 
 export interface CallInput {
   sourceId: string; // unique per conversation (vaani call id, whatsapp thread id, form submission id)
-  channel: "phone" | "whatsapp" | "web_form";
+  channel: "phone" | "website" | "whatsapp" | "web_form";
   startedAt: Date;
   durationSec: number | null;
   transcript: string;
@@ -63,8 +63,9 @@ export async function processCall(callId: string, input: CallInput): Promise<Cal
     const r = evaluate(x, input.startedAt);
     const status = ex.ok ? r.status : "incomplete";
 
-    const email = x.email ?? input.email ?? null;
-    const phone = x.phone ?? input.phone ?? null;
+    // Typed (website) or caller-ID details beat what the model heard on the line.
+    const email = input.email ?? x.email ?? null;
+    const phone = input.phone ?? x.phone ?? null;
 
     // 4. Booking: from the Vaani payload, else look it up in Cal.com
     let booking = input.booking?.start ? input.booking : null;
@@ -87,7 +88,7 @@ export async function processCall(callId: string, input: CallInput): Promise<Cal
 
     // 5. Save
     const row = await db().updateCall(callId, {
-      caller_name: x.caller_name ?? input.name ?? null,
+      caller_name: input.name ?? x.caller_name ?? null,
       phone,
       email,
       call_type: x.call_type,
@@ -144,6 +145,7 @@ export async function runOutputs(row: CallRow, opts: { email?: boolean; hubspot?
 
   // Email first: a HubSpot failure must never block it.
   if (opts.email !== false && wantsEmail) current = await notifyDesigner(current);
+  if (opts.email !== false && st && st !== "incomplete") await emailCaller(current);
   if (opts.hubspot !== false && (st === "qualified" || st === "borderline")) current = await pushHubspot(current);
   return current;
 }
@@ -158,17 +160,19 @@ export async function notifyDesigner(row: CallRow): Promise<CallRow> {
   } catch (e) {
     await logEvent(row.id, "email_error", { to, error: String(e) });
   }
-  // Optional caller confirmation (Cal.com already sends the invite).
-  if (row.email && row.booking_start && env("SEND_CALLER_CONFIRMATION") === "true" && effectiveStatus(row) !== "escalated") {
-    try {
-      const c = renderCallerConfirmation(row);
-      const sent = await sendEmail({ to: row.email, ...c });
-      await logEvent(row.id, sent.mock ? "caller_email_dry_run" : "caller_email_sent", { id: sent.id });
-    } catch (e) {
-      await logEvent(row.id, "caller_email_error", { error: String(e) });
-    }
-  }
   return row;
+}
+
+/** The caller's own summary email (booking confirmation or a thank-you). Off with SEND_CALLER_CONFIRMATION=false. */
+export async function emailCaller(row: CallRow): Promise<void> {
+  if (!row.email || env("SEND_CALLER_CONFIRMATION") === "false") return;
+  try {
+    const c = renderCallerConfirmation(row);
+    const sent = await sendEmail({ to: row.email, ...c, replyTo: env("DESIGNER_EMAIL") || null });
+    await logEvent(row.id, sent.mock ? "caller_email_dry_run" : "caller_email_sent", { to: row.email, id: sent.id });
+  } catch (e) {
+    await logEvent(row.id, "caller_email_error", { to: row.email, error: String(e) });
+  }
 }
 
 export async function pushHubspot(row: CallRow): Promise<CallRow> {

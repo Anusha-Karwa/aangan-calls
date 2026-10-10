@@ -7,6 +7,8 @@ const DEFAULTS: Record<string, string> = {
     "https://assets.mixkit.co/videos/4029/4029-720.mp4",
     "https://assets.mixkit.co/videos/4488/4488-720.mp4",
   ].join(","),
+  // The studio dashboard's Vaani webhook: website calls tell it which typed details belong to which call.
+  STUDIO_WEBHOOK_URL: "https://aangan-calls.vercel.app/api/vaani/webhook",
 };
 
 export function env(name: string): string {

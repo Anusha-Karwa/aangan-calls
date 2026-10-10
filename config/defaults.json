@@ -4,7 +4,7 @@
   "CALCOM_EVENT_DURATION_MIN": "60",
   "CALCOM_TIMEZONE": "Asia/Kolkata",
   "EMAIL_FROM": "Aangan Studio <onboarding@resend.dev>",
-  "SEND_CALLER_CONFIRMATION": "false",
+  "SEND_CALLER_CONFIRMATION": "true",
   "HUBSPOT_PIPELINE": "default",
   "HUBSPOT_STAGE_BOOKED": "4412778201",
   "HUBSPOT_STAGE_QUALIFIED": "4412778200",

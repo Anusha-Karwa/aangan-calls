@@ -113,23 +113,53 @@ export function renderDesignerEmail(c: CallRow): { subject: string; html: string
   return { subject, html, text };
 }
 
+/** The email the caller gets after their conversation. */
 export function renderCallerConfirmation(c: CallRow): { subject: string; html: string; text: string } {
-  const when = formatIst(c.booking_start);
-  const where = c.booking_type === "site_visit" ? "at your site" : "at our studio";
-  const text = `Hi ${c.caller_name ?? "there"},
+  const st = effectiveStatus(c);
+  const first = (c.caller_name ?? "").split(" ")[0] || "there";
+  const shared = [
+    c.property && `Property: ${c.property}${c.carpet_sqft ? ` (${c.carpet_sqft} sq ft)` : ""}`,
+    c.location_area && `Area: ${c.location_area}`,
+    c.scope && `What you'd like done: ${c.scope}`,
+    c.timeline_text && `Timeline: ${c.timeline_text}`,
+  ].filter(Boolean) as string[];
 
-Thank you for calling Aangan Studio. Your free 60-minute design consultation is booked for ${when}, ${where}. You'll also get a calendar invite.
+  let subject: string;
+  let body: string;
+  if (c.booking_start) {
+    const where = c.booking_type === "site_visit" ? "at your site" : "at our studio";
+    subject = `Your Aangan Studio consultation: ${formatIst(c.booking_start)}`;
+    body = `Thank you for speaking with Aangan Studio. Your free 60-minute design consultation is booked for ${formatIst(c.booking_start)}, ${where}. Your calendar invite is on its way separately.
 
 To make the most of it, please keep handy:
 - the floor plan (or rough room sizes)
 - a few photos of the space as it is today
-- any reference images you like (Instagram/Pinterest saves are perfect)
-- everyone who will make the decision, if they can join
+- any reference images you like (Instagram or Pinterest saves are perfect)
+- everyone who will make the decision, if they can join`;
+  } else if (st === "escalated") {
+    subject = "We're on it: Aangan Studio";
+    body = `Thank you for letting us know, and we're sorry for the trouble. A senior member of our team will call you back shortly (first thing in the morning if it's after hours).`;
+  } else if (st === "qualified" || st === "borderline") {
+    subject = "Thank you for calling Aangan Studio";
+    body = `Thank you for telling us about your space. A designer will call you to fix a time for your free 60-minute consultation.`;
+  } else {
+    subject = "Thank you for calling Aangan Studio";
+    body = `Thank you for considering Aangan Studio. From what you shared, this may not be the right fit for us right now, but please reach out again if your plans change. We'd love to hear from you.`;
+  }
 
-See you soon,
-Aangan Studio`;
-  const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif;font-size:15px;line-height:1.55;color:#1f1a17;max-width:520px">${esc(text).replace(/\n/g, "<br/>")}</div>`;
-  return { subject: `Your Aangan Studio consultation: ${when}`, html, text };
+  const recap = shared.length ? `\n\nWhat you shared with us:\n${shared.map((s) => `- ${s}`).join("\n")}` : "";
+  const text = `Hi ${first},\n\n${body}${recap}\n\nWarm regards,\nAangan Studio · Interiors · Pune`;
+  const html = `<!doctype html><html><body style="margin:0;background:#fbf8ff;font-family:-apple-system,Segoe UI,Roboto,Arial,sans-serif">
+<div style="max-width:520px;margin:0 auto;padding:28px 18px">
+  <div style="font-family:Georgia,serif;font-style:italic;font-size:24px;color:#1d1430">Aangan</div>
+  <div style="font-size:9px;letter-spacing:.3em;text-transform:uppercase;color:#6b6280;margin-bottom:18px">Interiors · Pune</div>
+  <div style="background:#fff;border:1px solid #ede6fb;border-top:4px solid #b794f4;border-radius:14px;padding:22px;font-size:15px;line-height:1.6;color:#1d1430">
+    ${esc(`Hi ${first},`)}<br/><br/>${esc(body).replace(/\n/g, "<br/>")}
+    ${shared.length ? `<div style="margin-top:16px;padding-top:12px;border-top:1px solid #f1ecfb;font-size:13px;color:#6b6280">What you shared with us<ul style="margin:6px 0 0;padding-left:18px;color:#1d1430">${shared.map((s) => `<li>${esc(s)}</li>`).join("")}</ul></div>` : ""}
+  </div>
+  <div style="font-size:12px;color:#6b6280;margin-top:12px">Warm regards, Aangan Studio</div>
+</div></body></html>`;
+  return { subject, html, text };
 }
 
 async function post(payload: Record<string, unknown>): Promise<string> {
