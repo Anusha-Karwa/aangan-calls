@@ -36,7 +36,8 @@ type View = "all" | "upcoming" | "reengage";
 export function PeopleBoard({ view, people }: { view: View; people: Person[] }) {
   const [openKey, setOpenKey] = useState<string | null>(null);
   const [callId, setCallId] = useState<string | null>(null);
-  const open = (p: Person, id?: string) => { setOpenKey(p.key); setCallId(id ?? p.latest.id); };
+  const [layout, setLayout] = useState<"board" | "list">("board");
+  const open =(p: Person, id?: string) => { setOpenKey(p.key); setCallId(id ?? p.latest.id); };
   const person = people.find((p) => p.key === openKey) ?? null;
 
   useEffect(() => {
@@ -61,14 +62,20 @@ export function PeopleBoard({ view, people }: { view: View; people: Person[] }) 
     <>
       {view === "upcoming" ? (
         upcoming.length ? (
-          <ul className="mt-4 grid gap-3 md:grid-cols-2">
+          // Timeline: an ombré spine with a date bubble per consultation.
+          <ol className="relative mt-6 space-y-4 pl-0 before:absolute before:bottom-4 before:left-[31px] before:top-4 before:w-[3px] before:rounded-full before:bg-gradient-to-b before:from-violet-500 before:via-fuchsia-500 before:to-orange-400">
             {upcoming.map(({ p, c }, i) => (
-              <li key={c.id} className="animate-rise" style={{ animationDelay: `${i * 50}ms` }}>
-                <button onClick={() => open(p, c.id)} className="card card-hover flex w-full gap-4 p-4 text-left">
-                  <div className="bg-ombre grid w-16 shrink-0 place-items-center rounded-xl py-2 text-center text-white shadow-md">
-                    <div className="text-[10px] font-bold uppercase tracking-wider">{c.label.bMonth}</div>
-                    <div className="font-display text-2xl font-semibold leading-none">{c.label.bDay}</div>
-                    <div className="text-[10px] font-semibold">{c.label.bTime}</div>
+              <li key={c.id} className="animate-rise relative flex items-center gap-4" style={{ animationDelay: `${i * 60}ms` }}>
+                <div className="bg-ombre relative z-10 grid h-16 w-16 shrink-0 place-items-center rounded-full text-center text-white shadow-lg ring-4 ring-white">
+                  <div className="leading-none">
+                    <div className="text-[9px] font-bold uppercase tracking-wider">{c.label.bMonth}</div>
+                    <div className="font-display text-xl font-semibold">{c.label.bDay}</div>
+                  </div>
+                </div>
+                <button onClick={() => open(p, c.id)} className="card card-hover flex flex-1 gap-4 p-4 text-left">
+                  <div className="w-16 shrink-0 text-center">
+                    <div className="font-display text-lg font-semibold text-ink">{c.label.bTime}</div>
+                    <div className="text-[10px] font-bold uppercase tracking-wider text-muted">IST</div>
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center justify-between gap-2">
@@ -84,7 +91,7 @@ export function PeopleBoard({ view, people }: { view: View; people: Person[] }) 
                 </button>
               </li>
             ))}
-          </ul>
+          </ol>
         ) : <Empty text="No upcoming consultations yet. Calls the agent books land here, soonest first." />
       ) : view === "reengage" ? (
         reengage.length ? (
@@ -115,6 +122,17 @@ export function PeopleBoard({ view, people }: { view: View; people: Person[] }) 
         <Empty text="No callers match. Test calls appear here a few seconds after they end." />
       ) : (
         <>
+          <div className="mt-4 flex items-center justify-end">
+            <div className="inline-flex rounded-full border border-violet-100 bg-white p-0.5 text-xs font-semibold shadow-sm" role="tablist" aria-label="Layout">
+              {(["board", "list"] as const).map((l) => (
+                <button key={l} role="tab" aria-selected={layout === l} onClick={() => setLayout(l)}
+                  className={`rounded-full px-3 py-1 transition ${layout === l ? "bg-ombre text-white shadow" : "text-muted hover:text-ink"}`}>
+                  {l === "board" ? "▦ Board" : "☰ List"}
+                </button>
+              ))}
+            </div>
+          </div>
+          {layout === "board" ? <MoodBoard people={people} onOpen={open} /> : (<>
           {/* Desktop table */}
           <div className="card mt-4 hidden overflow-hidden md:block">
             <table className="w-full text-sm">
@@ -180,11 +198,80 @@ export function PeopleBoard({ view, people }: { view: View; people: Person[] }) 
               </li>
             ))}
           </ul>
+          </>)}
         </>
       )}
 
       {person && <Drawer person={person} callId={callId ?? person.latest.id} onPick={setCallId} onClose={() => setOpenKey(null)} />}
     </>
+  );
+}
+
+// Mood board: callers pinned like a designer's reference board (masonry columns).
+const SWATCH: Record<string, string> = {
+  qualified: "bg-ombre",
+  borderline: "bg-gradient-to-r from-amber-300 to-orange-400",
+  escalated: "bg-gradient-to-r from-rose-400 to-rose-600",
+  unqualified: "bg-gradient-to-r from-slate-200 to-slate-300",
+  incomplete: "bg-gradient-to-r from-zinc-200 to-zinc-300",
+};
+
+function MoodBoard({ people, onOpen }: { people: Person[]; onOpen: (p: Person) => void }) {
+  return (
+    <div className="mt-3 columns-1 gap-4 sm:columns-2 lg:columns-3">
+      {people.map((p, i) => {
+        const c = p.latest;
+        const booked = p.calls.find((x) => x.booking_start);
+        return (
+          <article key={p.key} className="animate-rise group mb-4 break-inside-avoid" style={{ animationDelay: `${Math.min(i, 9) * 50}ms` }}>
+            <div className="card card-hover relative overflow-hidden">
+              {/* pin */}
+              <span className="absolute left-1/2 top-1.5 z-10 h-3 w-3 -translate-x-1/2 rounded-full bg-white shadow ring-2 ring-fuchsia-400" aria-hidden />
+              <div className={`h-14 ${SWATCH[c.status ?? "incomplete"]} relative`}>
+                <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.6)_1px,transparent_1px)] [background-size:14px_14px]" />
+              </div>
+              <button onClick={() => onOpen(p)} className="block w-full p-4 pt-0 text-left">
+                <div className="relative z-10 -mt-6 flex items-end justify-between">
+                  <span className="rounded-full ring-4 ring-white"><Avatar name={p.name ?? p.phone ?? "?"} /></span>
+                  <MiniRing score={c.score} />
+                </div>
+                <div className="mt-2 flex items-center gap-2">
+                  <h3 className="truncate font-display text-lg font-semibold text-ink">{p.name ?? p.phone ?? "Unknown caller"}</h3>
+                  {p.calls.length > 1 && <span className="shrink-0 rounded-full bg-violet-100 px-1.5 text-[10px] font-bold text-violet-700">{p.calls.length} calls</span>}
+                </div>
+                <div className="mt-0.5 text-xs text-muted">{p.calls[0].label.atShort}</div>
+                <div className="mt-2 flex flex-wrap gap-1.5 text-[11px] font-semibold">
+                  <StatusPill status={c.status} overridden={c.overridden} />
+                  {c.location_area && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-800">📍 {c.location_area}</span>}
+                  {c.property && <span className="rounded-full bg-orange-50 px-2 py-0.5 text-orange-800">🏠 {c.property}</span>}
+                </div>
+                {c.summary && <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink/70">{c.summary.split("\n")[0]}</p>}
+                {booked && (
+                  <div className="mt-3 flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800">
+                    📅 {booked.label.booking}
+                  </div>
+                )}
+                {c.flags.length > 0 && <div className="mt-2"><Flags flags={c.flags} /></div>}
+              </button>
+              <div className="flex border-t border-violet-50 text-xs font-semibold opacity-80 transition group-hover:opacity-100">
+                {p.phone ? <a href={`tel:${p.phone}`} className="flex-1 py-2.5 text-center text-violet-700 hover:bg-violet-50">📞 Call</a> : <span className="flex-1 py-2.5 text-center text-slate-300">No number</span>}
+                <button onClick={() => onOpen(p)} className="flex-1 border-l border-violet-50 py-2.5 text-fuchsia-700 hover:bg-fuchsia-50">Details →</button>
+              </div>
+            </div>
+          </article>
+        );
+      })}
+    </div>
+  );
+}
+
+function MiniRing({ score }: { score: number | null }) {
+  const pct = score ?? 0;
+  return (
+    <span className="grid h-11 w-11 place-items-center rounded-full" title={score === null ? "Not scored" : `Score ${score}/100`}
+      style={{ background: `conic-gradient(#7c3aed 0%, #d946ef ${pct * 0.45}%, #f97316 ${pct}%, #efe9fb ${pct}% 100%)` }}>
+      <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-[11px] font-bold text-ink">{score ?? "–"}</span>
+    </span>
   );
 }
 

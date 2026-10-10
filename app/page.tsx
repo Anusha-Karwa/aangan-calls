@@ -8,6 +8,7 @@ import { effectiveStatus, type CallStatus } from "@/lib/types";
 import { STATUS_STYLE, StatusPill, VideoBackdrop } from "@/components/ui";
 import { CountUp, PeopleBoard } from "@/components/interactive";
 import { BookingCalendar, type CalendarDay, type DayPin } from "@/components/hero";
+import { DailyBars } from "@/components/insights";
 import { TopNav } from "@/components/nav";
 
 export const dynamic = "force-dynamic";
@@ -19,6 +20,37 @@ const VIEWS = [
   { key: "reengage", label: "Re-engage" },
 ] as const;
 const STATUSES: CallStatus[] = ["qualified", "borderline", "unqualified", "escalated", "incomplete"];
+
+const STATUS_ICON: Record<CallStatus, string> = { qualified: "✓", borderline: "◐", unqualified: "✕", escalated: "!", incomplete: "…" };
+
+function SectionTitle({ n, title, aside }: { n: string; title: string; aside?: string }) {
+  return (
+    <div className="mb-3 mt-10 flex flex-wrap items-end gap-x-4 gap-y-1">
+      <span className="text-ombre font-display text-sm font-semibold">{n}</span>
+      <h2 className="font-display text-2xl font-semibold text-ink">{title}</h2>
+      <span className="mb-1.5 hidden h-px flex-1 bg-gradient-to-r from-violet-200 via-fuchsia-200 to-transparent sm:block" />
+      <span className="mb-1 flex items-center gap-1" aria-hidden>
+        {["bg-violet-500", "bg-fuchsia-500", "bg-rose-400", "bg-orange-400"].map((c) => <span key={c} className={`h-2.5 w-2.5 rounded-full ${c} ring-2 ring-white`} />)}
+      </span>
+      {aside && <span className="w-full text-xs text-muted sm:w-auto">{aside}</span>}
+    </div>
+  );
+}
+
+function Meter({ label, pct, note }: { label: string; pct: number; note: string }) {
+  return (
+    <div>
+      <div className="flex items-baseline justify-between">
+        <span className="text-[11px] font-bold uppercase tracking-wider text-muted">{label}</span>
+        <span className="text-ombre font-display text-2xl font-semibold tabular-nums"><CountUp value={pct} suffix="%" /></span>
+      </div>
+      <div className="mt-1.5 h-2.5 overflow-hidden rounded-full bg-violet-50" role="meter" aria-valuenow={pct} aria-valuemin={0} aria-valuemax={100} aria-label={label}>
+        <div className="bg-ombre h-full rounded-full transition-all duration-700" style={{ width: `${Math.max(pct, pct ? 4 : 0)}%` }} />
+      </div>
+      <div className="mt-1 text-xs text-muted">{note}</div>
+    </div>
+  );
+}
 
 function greeting(): string {
   const h = toIst(new Date()).getUTCHours();
@@ -41,7 +73,9 @@ function search(people: Person[], s: Search): Person[] {
 export default async function Dashboard({ searchParams }: { searchParams: Search }) {
   const view = (VIEWS.find((v) => v.key === searchParams.view)?.key ?? "all") as "all" | "upcoming" | "reengage";
   const all = await db().listCalls({ limit: 2000 });
-  const month = searchParams.month ?? monthKey(new Date());
+  const thisMonth = monthKey(new Date());
+  const latestWithCalls = all.length ? monthKey(all[0].started_at ?? all[0].created_at) : thisMonth;
+  const month = searchParams.month ?? (all.some((r) => monthKey(r.started_at ?? r.created_at) === thisMonth) ? thisMonth : latestWithCalls);
   const rows = inMonth(all, month);
   const monthPeople = groupPeople(rows);
   const st = monthStats(rows, monthPeople);
@@ -77,6 +111,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
     ];
     return { day: i + 1, isToday: key === todayKey, pins };
   });
+  const daily = calendar.map((d) => ({ label: `${d.day} ${new Intl.DateTimeFormat("en-IN", { month: "short", timeZone: "UTC" }).format(new Date(Date.UTC(cy, cm - 1, 1)))}`, calls: d.pins.filter((x) => x.kind === "call").length, booked: d.pins.filter((x) => x.kind === "booking").length }));
   const last = all.find((r) => r.status);
   const nextBooking = everyone
     .flatMap((p) => p.calls.filter((c) => c.booking_start && Date.parse(c.booking_start) > Date.now() && c.booking_status !== "cancelled").map((c) => ({ p, c })))
@@ -165,50 +200,73 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
           </div>
         </section>
 
-        {/* KPI tiles */}
-        <section className="mt-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-          {[
-            { label: "Callers", value: <CountUp value={st.people} />, sub: `${st.calls} calls · ${st.afterHoursPct}% after hours` },
-            { label: "Booking rate", value: <CountUp value={st.bookingRate} suffix="%" />, sub: `${st.booked} of ${st.byStatus.qualified + st.byStatus.borderline} qualified callers booked` },
-            { label: "Asked about price", value: <CountUp value={st.askedPricePct} suffix="%" />, sub: "deflected · no number ever quoted" },
-            { label: "Call cost", value: <CountUp value={st.totalCost} prefix="₹" />, sub: `${st.avgMinutes} min avg${st.costPerBooking !== null ? ` · ₹${st.costPerBooking} per booking` : ""}` },
-          ].map((t, i) => (
-            <div key={t.label} className="card card-hover animate-rise p-4" style={{ animationDelay: `${i * 60}ms` }}>
-              <div className="text-[11px] font-bold uppercase tracking-wider text-muted">{t.label}</div>
-              <div className="text-ombre mt-1 font-display text-3xl font-semibold tabular-nums">{t.value}</div>
-              <div className="mt-1 text-xs text-muted">{t.sub}</div>
+        {/* 01 · At a glance: one flowing strip, not four boxes */}
+        <SectionTitle n="01" title="The month at a glance" aside={monthLabel(month)} />
+        <section className="card animate-rise relative overflow-hidden p-0">
+          <div className="bg-ombre absolute inset-x-0 top-0 h-1" />
+          <div className="grid divide-y divide-violet-100 md:grid-cols-[1.4fr_1fr_1fr] md:divide-x md:divide-y-0">
+            <div className="p-5">
+              <div className="flex items-baseline justify-between">
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Calls per day</span>
+                <span className="text-xs text-muted">{st.afterHoursPct}% after hours</span>
+              </div>
+              <div className="mt-1 flex items-baseline gap-2">
+                <span className="text-ombre font-display text-4xl font-semibold tabular-nums"><CountUp value={st.calls} /></span>
+                <span className="text-sm text-muted">calls · {st.people} people</span>
+              </div>
+              <div className="mt-3"><DailyBars days={daily} /></div>
             </div>
-          ))}
+            <div className="space-y-5 p-5">
+              <Meter label="Booking rate" pct={st.bookingRate} note={`${st.booked} of ${st.byStatus.qualified + st.byStatus.borderline} qualified callers booked on the call`} />
+              <Meter label="Asked about price" pct={st.askedPricePct} note="deflected every time · no number quoted" />
+            </div>
+            <div className="flex flex-col justify-between gap-4 p-5">
+              <div>
+                <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Cost of answering</span>
+                <div className="text-ombre mt-1 font-display text-4xl font-semibold tabular-nums"><CountUp value={st.totalCost} prefix="₹" /></div>
+                <div className="text-xs text-muted">{st.avgMinutes} min average call</div>
+              </div>
+              <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-orange-50 p-3 text-xs text-ink/80">
+                {st.costPerBooking !== null ? <>≈ <strong className="text-ink">₹{st.costPerBooking}</strong> per booked consultation, on projects worth ₹8–14 lakh.</> : <>Every booked consultation is a ₹8–14 lakh project in the making.</>}
+              </div>
+            </div>
+          </div>
         </section>
 
-        {/* Status mix: click a segment to filter */}
-        <section className="card mt-5 p-5">
-          <div className="flex flex-wrap items-baseline justify-between gap-2">
-            <h2 className="text-sm font-bold text-ink">Who called · {monthLabel(month)}</h2>
-            <span className="text-xs text-muted">Click a colour to filter</span>
-          </div>
-          <div className="mt-4 flex h-4 overflow-hidden rounded-full bg-violet-50">
-            {STATUSES.map((s) =>
-              st.byStatus[s] ? (
+        {/* 02 · Who called */}
+        <SectionTitle n="02" title="Who called" aside="Click a status to filter the board" />
+        <section className="card animate-rise p-5">
+          <div className="flex h-11 gap-[2px] overflow-hidden rounded-2xl bg-white">
+            {STATUSES.filter((s) => st.byStatus[s]).map((s) => {
+              const w = (st.byStatus[s] / Math.max(st.people, 1)) * 100;
+              return (
                 <Link key={s} href={href({ view: "all", status: s })} title={`${STATUS_STYLE[s].label}: ${st.byStatus[s]}`}
-                  className={`${STATUS_STYLE[s].bar} transition-all hover:brightness-110 hover:saturate-150`} style={{ width: `${(st.byStatus[s] / Math.max(st.people, 1)) * 100}%` }} />
-              ) : null,
-            )}
+                  className={`${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].bar} flex items-center justify-center gap-1.5 px-2 text-xs font-bold text-white transition hover:brightness-110 ${s === "unqualified" || s === "incomplete" ? "!text-ink/70" : ""}`}
+                  style={{ width: `${w}%` }}>
+                  {w >= 14 && <><span aria-hidden>{STATUS_ICON[s]}</span>{st.byStatus[s]} {STATUS_STYLE[s].label}</>}
+                </Link>
+              );
+            })}
+            {st.people === 0 && <div className="flex flex-1 items-center justify-center rounded-2xl bg-violet-50 text-xs font-semibold text-muted">No calls in {monthLabel(month)} yet</div>}
           </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {STATUSES.map((s) => (
-              <Link key={s} href={searchParams.status === s ? href({ status: undefined }) : href({ view: "all", status: s })}
-                className={`flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold transition ${searchParams.status === s ? "bg-ink text-white" : "bg-violet-50 text-ink hover:bg-violet-100"}`}>
-                <span className={`h-2 w-2 rounded-full ${STATUS_STYLE[s].dot}`} />
-                {STATUS_STYLE[s].label}
-                <span className="opacity-70">{st.byStatus[s]}</span>
-              </Link>
-            ))}
+          <div className="mt-4 flex flex-wrap gap-2">
+            {STATUSES.map((s) => {
+              const on = searchParams.status === s;
+              return (
+                <Link key={s} href={on ? href({ status: undefined }) : href({ view: "all", status: s })}
+                  className={`group flex items-center gap-2 rounded-full border px-3 py-1.5 text-xs font-semibold transition ${on ? "border-transparent bg-ink text-white" : "border-violet-100 bg-white text-ink hover:-translate-y-0.5 hover:border-violet-200 hover:shadow-sm"}`}>
+                  <span className={`grid h-5 w-5 place-items-center rounded-full text-[10px] text-white ${s === "qualified" ? "bg-ombre" : STATUS_STYLE[s].dot}`} aria-hidden>{STATUS_ICON[s]}</span>
+                  {STATUS_STYLE[s].label}
+                  <span className={on ? "text-white/70" : "text-muted"}>{st.byStatus[s]}</span>
+                </Link>
+              );
+            })}
           </div>
         </section>
 
-        {/* Tabs */}
-        <nav className="mt-8 flex gap-1 overflow-x-auto rounded-2xl border border-violet-100 bg-white/70 p-1 text-sm shadow-sm backdrop-blur">
+        {/* 03 · Callers */}
+        <SectionTitle n="03" title="Callers" aside={`${listPeople.length} ${view === "all" ? `in ${monthLabel(month)}` : "people"} · click anyone for details`} />
+        <nav className="flex gap-1 overflow-x-auto rounded-2xl border border-violet-100 bg-white/70 p-1 text-sm shadow-sm backdrop-blur">
           {VIEWS.map((v) => (
             <Link key={v.key} href={href({ view: v.key, status: undefined })}
               className={`whitespace-nowrap rounded-xl px-4 py-2 font-semibold transition ${view === v.key ? "bg-ombre text-white shadow-[0_8px_20px_-8px_rgba(192,38,211,0.8)]" : "text-muted hover:bg-violet-50 hover:text-ink"}`}>
@@ -232,7 +290,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
             </select>
             <button className="btn-ombre">Apply</button>
             {(searchParams.q || searchParams.status || searchParams.month) && <Link href="/" className="px-2 text-sm font-semibold text-muted hover:text-ink">Reset</Link>}
-            <span className="ml-auto text-xs text-muted">{listPeople.length} caller{listPeople.length === 1 ? "" : "s"} · click anyone for details</span>
           </form>
         )}
 
