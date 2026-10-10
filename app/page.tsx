@@ -204,7 +204,7 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
         <SectionTitle n="01" title="The month at a glance" aside={monthLabel(month)} />
         <section className="card animate-rise relative overflow-hidden p-0">
           <div className="bg-ombre absolute inset-x-0 top-0 h-1" />
-          <div className="grid divide-y divide-violet-100 md:grid-cols-[1.4fr_1fr_1fr] md:divide-x md:divide-y-0">
+          <div className="grid divide-y divide-violet-100 md:grid-cols-[1.5fr_1fr] md:divide-x md:divide-y-0">
             <div className="p-5">
               <div className="flex items-baseline justify-between">
                 <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Calls per day</span>
@@ -219,16 +219,6 @@ export default async function Dashboard({ searchParams }: { searchParams: Search
             <div className="space-y-5 p-5">
               <Meter label="Booking rate" pct={st.bookingRate} note={`${st.booked} of ${st.byStatus.qualified + st.byStatus.borderline} qualified callers booked on the call`} />
               <Meter label="Asked about price" pct={st.askedPricePct} note="deflected every time · no number quoted" />
-            </div>
-            <div className="flex flex-col justify-between gap-4 p-5">
-              <div>
-                <span className="text-[11px] font-bold uppercase tracking-wider text-muted">Cost of answering</span>
-                <div className="text-ombre mt-1 font-display text-4xl font-semibold tabular-nums"><CountUp value={st.totalCost} prefix="₹" /></div>
-                <div className="text-xs text-muted">{st.avgMinutes} min average call</div>
-              </div>
-              <div className="rounded-2xl bg-gradient-to-br from-violet-50 to-orange-50 p-3 text-xs text-ink/80">
-                {st.costPerBooking !== null ? <>≈ <strong className="text-ink">₹{st.costPerBooking}</strong> per booked consultation, on projects worth ₹8–14 lakh.</> : <>Every booked consultation is a ₹8–14 lakh project in the making.</>}
-              </div>
             </div>
           </div>
         </section>
