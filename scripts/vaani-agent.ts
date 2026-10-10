@@ -23,7 +23,18 @@ async function main() {
       personality: { tone: "warm", style: "brief, natural, one question at a time" },
       greeting_message: { agent_message: GREETING, agent_speech_delay: 1, user_speech_delay: 1, interruptible: true, let_user_speak_first: false },
     },
-    senses_capabilities: { language: "en", auto_detect: true },
+    senses_capabilities: {
+      language: "en",
+      auto_detect: true,
+      // Vaani has globally disabled the 'azure' LLM provider (agent saves fail with it), so pin both slots.
+      brain: {
+        llm: {
+          primary: { provider: "google", model: "gemini-3.5-flash", parameters: { temperature: 0.5, top_p: 1, max_tokens: 400 } },
+          fallback: { provider: "openai", model: "gpt-4o", parameters: { temperature: 0.5, top_p: 1, max_tokens: 400 } },
+          auto_detect: false,
+        },
+      },
+    },
   };
   const agentId = process.env.VAANI_AGENT_ID;
   const [method, url, body] = agentId
