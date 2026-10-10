@@ -3,6 +3,7 @@ import { waitUntil } from "@vercel/functions";
 import { db } from "@/lib/db";
 import { processCall, receiveCall, type CallInput } from "@/lib/pipeline";
 import { isAfterHours } from "@/lib/time";
+import { refreshAgentSlots } from "@/lib/slots";
 import { normaliseVaaniPayload, verifyVaaniRequest } from "@/lib/vaani";
 
 export const dynamic = "force-dynamic";
@@ -89,7 +90,11 @@ export async function POST(req: Request) {
   const { row, duplicate } = await receiveCall(input);
   if (duplicate) return NextResponse.json({ ok: true, id: row.id, duplicate: true });
 
-  const work = processCall(row.id, input);
+  // After each call, refresh the agent's AVAILABLE SLOTS (a slot may just have been booked).
+  const work = processCall(row.id, input).then(async (done) => {
+    await refreshAgentSlots(true).catch((e) => console.error("slots refresh failed", e));
+    return done;
+  });
   if (url.searchParams.get("sync") === "1") {
     const done = await work;
     return NextResponse.json({ ok: true, id: row.id, status: done?.status ?? null, score: done?.score ?? null });

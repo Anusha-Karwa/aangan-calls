@@ -1,5 +1,5 @@
 import "server-only";
-import { findBookingForCall } from "./calcom";
+import { bookSlot, findBookingForCall } from "./calcom";
 import { db, logEvent } from "./db";
 import { designerRecipient, renderCallerConfirmation, renderDesignerEmail, sendEmail } from "./email";
 import { env } from "./env";
@@ -79,7 +79,34 @@ export async function processCall(callId: string, input: CallInput): Promise<Cal
       }
     }
 
+    // 4b. No booking yet, but the caller agreed a slot on the call → book it in Cal.com ourselves.
+    let bookingMoved = false;
+    const slotOk = x.requested_slot && !Number.isNaN(Date.parse(x.requested_slot)) && Date.parse(x.requested_slot) > Date.now();
+    if (!booking && slotOk && email && (status === "qualified" || status === "borderline")) {
+      try {
+        const made = await bookSlot({
+          startIso: x.requested_slot!,
+          name: input.name ?? x.caller_name ?? "Aangan caller",
+          email,
+          phone,
+          siteVisit: x.booking_type === "site_visit",
+          address: x.site_address ?? (x.location_area ? `${x.location_area}, Pune` : null),
+          callId,
+        });
+        if (made) {
+          booking = { uid: made.booking.uid, start: made.booking.start, type: x.booking_type ?? made.booking.type, status: made.booking.status ?? "accepted" };
+          bookingMoved = made.moved;
+          await logEvent(callId, "calcom_booked", { uid: made.booking.uid, start: made.booking.start, requested: x.requested_slot, moved: made.moved });
+        } else {
+          await logEvent(callId, "calcom_book_failed", { requested: x.requested_slot, reason: "no free slot near the requested time" });
+        }
+      } catch (e) {
+        await logEvent(callId, "calcom_error", { stage: "book", requested: x.requested_slot, error: String(e) });
+      }
+    }
+
     const flags = new Set<string>(r.flags);
+    if (bookingMoved) flags.add("unconfirmed_fields");
     if (ex.unconfirmed.length) flags.add("unconfirmed_fields");
     if (input.transferred) flags.add("transferred");
     if ((status === "qualified" || status === "borderline") && !booking?.start) flags.add("no_booking");

@@ -39,7 +39,9 @@ RULES
 - asked_price = true if the caller asked about cost, rates, price, a ballpark or a range, in any language.
 - vip_referral = referred by a friend/relative of the founder Nikhil or by someone the caller names as close to the studio.
 - frustrated = caller is annoyed/angry (e.g. no reply earlier). wants_human = asked for a person/manager.
-- booking_confirmed_on_call = the agent confirmed a booked slot. booking_type site_visit or studio, booking_time_text as said.
+- booking_confirmed_on_call = the agent confirmed a booked or reserved slot. booking_type site_visit or studio, booking_time_text as said.
+- requested_slot = the consultation start the caller and agent AGREED on (the agent says "I've reserved <weekday, date, time>"), as ISO 8601 with +05:30, e.g. 2026-10-12T11:00:00+05:30. Resolve "tomorrow" etc. from the call date. null if no slot was agreed.
+- site_address = the full site address given for a site visit; null otherwise.
 - source = how they heard about the studio (Instagram, Google, referral by <name>, LinkedIn ...).
 - language = the language(s) the caller used.
 - summary = exactly 5 short lines separated by "\\n", for the designer: who + property, what they want, area/size/state, timeline + decision-maker, anything to watch (price question, frustration, budget). No prices of our own.
@@ -87,6 +89,8 @@ export const GEMINI_SCHEMA = {
     booking_confirmed_on_call: { type: "BOOLEAN" },
     booking_type: ENUM(["site_visit", "studio"]),
     booking_time_text: S("STRING"),
+    requested_slot: S("STRING", { description: "ISO 8601 with +05:30" }),
+    site_address: S("STRING"),
     summary: { type: "STRING" },
     confidence: {
       type: "OBJECT",
@@ -100,7 +104,7 @@ export const GEMINI_SCHEMA = {
     "carpet_sqft", "site_state", "timeline_text", "target_date", "weeks_to_target", "timeline_flexible",
     "later_start_date", "decision_maker", "owners_will_attend", "budget_volunteered", "budget_inr", "asked_price",
     "source", "language", "just_exploring", "vip_referral", "frustrated", "wants_human", "transferred",
-    "booking_confirmed_on_call", "booking_type", "booking_time_text", "summary", "confidence",
+    "booking_confirmed_on_call", "booking_type", "booking_time_text", "requested_slot", "site_address", "summary", "confidence",
   ],
 };
 

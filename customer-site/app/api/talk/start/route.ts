@@ -47,10 +47,20 @@ export async function POST(req: Request) {
   const ip = (req.headers.get("x-forwarded-for") ?? "local").split(",")[0].trim();
   if (!allowed(ip)) return NextResponse.json({ error: "Too many calls from this device. Please try again in a little while." }, { status: 429 });
 
+  // Fresh AVAILABLE SLOTS from the studio (it also writes them into the agent), so the assistant
+  // only offers real Cal.com times. Best effort: the call still works without them.
+  let slots = "";
+  if (env("STUDIO_WEBHOOK_URL")) {
+    const url = new URL(env("STUDIO_WEBHOOK_URL").replace(/\/webhook\/?$/, "/slots"));
+    if (env("VAANI_WEBHOOK_SECRET")) url.searchParams.set("secret", env("VAANI_WEBHOOK_SECRET"));
+    const r = await fetch(url, { method: "POST", signal: AbortSignal.timeout(9000) }).catch((e) => { console.error("slots fetch failed", e); return null; });
+    if (r?.ok) slots = ((await r.json()) as { slots?: string }).slots ?? "";
+  }
+
   const primary = body.language === "hi" ? "hi" : "en";
   const first = name.split(" ")[0];
   const greeting = `Hi ${first}, this is Aangan Studio's assistant. This call is recorded so our designer has your details. Is this about a new project, or one we're already working on?`;
-  const callerDetails = `\n\nCALLER DETAILS (typed by the caller on the website before this call)\n- Name: ${name}\n- Email: ${email}\n- Phone: ${phone}\nYou have already greeted them by name and asked whether this is a new or existing project. Continue from their answer.`;
+  const callerDetails = `\n\nCALLER DETAILS (typed by the caller on the website before this call)\n- Name: ${name}\n- Email: ${email}\n- Phone: ${phone} (never ask for it)\nIf you have not greeted them by name yet, do so; then continue the conversation.`;
 
   const res = await fetch(`${VAANI_API}/api/trigger-call/`, {
     method: "POST",
@@ -65,7 +75,7 @@ export async function POST(req: Request) {
       welcome_interruptible: false, // a stray "okay" or speaker echo must not chop the greeting
       voice_speed: 1.0,
       metadata: { channel: "website", caller_name: name, caller_email: email, caller_phone: phone },
-      modify_agent: { persona: { identity: { system_prompt: AGENT_PROMPT + callerDetails } } },
+      modify_agent: { persona: { identity: { system_prompt: AGENT_PROMPT + slots + callerDetails } } },
     }),
     cache: "no-store",
   });

@@ -66,6 +66,8 @@ export const ExtractionSchema = z.object({
   booking_confirmed_on_call: z.boolean(),
   booking_type: z.enum(["site_visit", "studio"]).nullable(),
   booking_time_text: nstr,
+  requested_slot: z.string().nullable().default(null),
+  site_address: nstr.default(null),
   summary: z.string(),
   confidence: z.record(z.string(), z.number().min(0).max(1)).default({}),
 });
@@ -81,7 +83,7 @@ export function emptyExtraction(overrides: Partial<Extraction> = {}): Extraction
     target_date: null, weeks_to_target: null, timeline_flexible: null, later_start_date: null, decision_maker: null,
     owners_will_attend: null, budget_volunteered: null, budget_inr: null, asked_price: false, source: null,
     language: null, just_exploring: false, vip_referral: false, frustrated: false, wants_human: false,
-    transferred: false, booking_confirmed_on_call: false, booking_type: null, booking_time_text: null, summary: "",
+    transferred: false, booking_confirmed_on_call: false, booking_type: null, booking_time_text: null, requested_slot: null, site_address: null, summary: "",
     confidence: {},
     ...overrides,
   };
