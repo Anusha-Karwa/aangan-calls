@@ -4,10 +4,10 @@ import { AanganLogo } from "./logo";
 // ---------- status + flags (light theme, vivid) ----------
 
 export const STATUS_STYLE: Record<CallStatus, { pill: string; dot: string; bar: string; label: string }> = {
-  qualified: { pill: "bg-violet-50 text-violet-700 ring-violet-200", dot: "bg-violet-600", bar: "bg-violet-600", label: "Qualified" },
-  borderline: { pill: "bg-amber-50 text-amber-700 ring-amber-200", dot: "bg-amber-500", bar: "bg-amber-400", label: "Borderline" },
-  unqualified: { pill: "bg-gray-100 text-gray-600 ring-gray-200", dot: "bg-gray-400", bar: "bg-gray-400", label: "Unqualified" },
-  escalated: { pill: "bg-red-50 text-red-700 ring-red-200", dot: "bg-red-600", bar: "bg-red-600", label: "Escalated" },
+  qualified: { pill: "bg-violet-50 text-violet-600 ring-violet-100", dot: "bg-violet-400", bar: "bg-violet-400", label: "Qualified" },
+  borderline: { pill: "bg-amber-50 text-amber-600 ring-amber-100", dot: "bg-amber-300", bar: "bg-amber-300", label: "Borderline" },
+  unqualified: { pill: "bg-gray-50 text-gray-500 ring-gray-200", dot: "bg-gray-300", bar: "bg-gray-300", label: "Unqualified" },
+  escalated: { pill: "bg-red-50 text-red-600 ring-red-100", dot: "bg-red-400", bar: "bg-red-400", label: "Escalated" },
   incomplete: { pill: "bg-stone-50 text-stone-400 ring-stone-200", dot: "bg-stone-300", bar: "bg-stone-200", label: "Incomplete" },
 };
 
@@ -63,7 +63,7 @@ export function ScoreRing({ score, size = 104 }: { score: number | null; size?: 
   return (
     <div
       className="relative grid shrink-0 place-items-center rounded-full"
-      style={{ width: size, height: size, background: `conic-gradient(#7c3aed 0%, #d946ef ${pct * 0.45}%, #f97316 ${pct}%, #efe9fb ${pct}% 100%)` }}
+      style={{ width: size, height: size, background: `conic-gradient(#9f7aea 0%, #d58fd8 ${pct * 0.45}%, #f7b386 ${pct}%, #f3eefb ${pct}% 100%)` }}
     >
       <div className="grid place-items-center rounded-full bg-white" style={{ width: size - 12, height: size - 12 }}>
         <div className="text-center leading-none">

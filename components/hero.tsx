@@ -52,7 +52,7 @@ export function BookingCalendar({ title, offset, days }: { title: string; offset
                 onFocus={() => has && setOpen(d.day)}
                 onClick={() => has && setOpen(d.day)}
                 className={`relative grid h-7 w-full place-items-center rounded-md text-xs font-semibold transition ${
-                  booking ? "bg-ombre text-white shadow-sm" : has ? "bg-violet-50 text-violet-800 hover:bg-violet-100" : "text-ink/60"
+                  booking ? "bg-ombre text-white" : has ? "bg-violet-50 text-violet-800 hover:bg-violet-100" : "text-ink/60"
                 } ${d.isToday ? "ring-2 ring-orange-400 ring-offset-1" : ""} ${isOpen ? "scale-110" : ""}`}
                 aria-label={has ? `${d.day}: ${d.pins.length} item(s)` : String(d.day)}
               >

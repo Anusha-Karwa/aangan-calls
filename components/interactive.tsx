@@ -209,26 +209,25 @@ export function PeopleBoard({ view, people }: { view: View; people: Person[] }) 
 
 // Mood board: callers pinned like a designer's reference board (masonry columns).
 const SWATCH: Record<string, string> = {
-  qualified: "bg-violet-600",
-  borderline: "bg-amber-400",
-  escalated: "bg-red-600",
-  unqualified: "bg-gray-400",
+  qualified: "bg-violet-300",
+  borderline: "bg-amber-200",
+  escalated: "bg-red-300",
+  unqualified: "bg-gray-200",
   incomplete: "bg-stone-200",
 };
 
 function MoodBoard({ people, onOpen }: { people: Person[]; onOpen: (p: Person) => void }) {
   // Uniform grid: every card has the same rows and the same height, footer pinned to the bottom.
   return (
-    <div className="mt-2 grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+    <div className="mt-2 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
       {people.map((p, i) => {
         const c = p.latest;
         const booked = p.calls.find((x) => x.booking_start);
-        const extraFlags = Math.max(0, c.flags.length - 2);
         return (
           <article key={p.key} className="animate-rise group" style={{ animationDelay: `${Math.min(i, 9) * 40}ms` }}>
             <div className="card card-hover relative flex h-full flex-col overflow-hidden">
               <div className={`h-1.5 ${SWATCH[c.status ?? "incomplete"]}`} />
-              <button onClick={() => onOpen(p)} className="flex flex-1 flex-col gap-2 p-3 text-left">
+              <button onClick={() => onOpen(p)} className="flex flex-1 flex-col gap-2.5 p-4 text-left">
                 {/* row 1: who */}
                 <div className="flex items-center gap-2.5">
                   <Avatar name={p.name ?? p.phone ?? "?"} />
@@ -244,18 +243,12 @@ function MoodBoard({ people, onOpen }: { people: Person[]; onOpen: (p: Person) =
                 {/* row 2: status · area · property, always one line */}
                 <div className="flex min-w-0 items-center gap-1 text-[11px] font-semibold">
                   <span className="shrink-0"><StatusPill status={c.status} overridden={c.overridden} /></span>
-                  {c.location_area && <span className="min-w-0 truncate rounded-full bg-violet-50 px-2 py-0.5 text-violet-800">📍 {c.location_area}</span>}
-                  {c.property && <span className="min-w-0 truncate rounded-full bg-orange-50 px-2 py-0.5 text-orange-800">🏠 {c.property}</span>}
+                  {c.location_area && <span className="min-w-0 truncate text-muted">📍 {c.location_area}</span>}
                 </div>
-                {/* row 3: booking, else the first summary line */}
-                <p className={`truncate text-xs ${booked ? "font-semibold text-violet-800" : "text-ink/65"}`}>
-                  {booked ? `📅 ${booked.label.booking}` : c.summary?.split("\n")[0] ?? "No summary yet"}
+                {/* row 3: the booked consultation, if any */}
+                <p className={`truncate text-xs ${booked ? "font-semibold text-violet-700" : "text-muted"}`}>
+                  {booked ? `📅 ${booked.label.booking}` : "No consultation booked yet"}
                 </p>
-                {/* row 4: at most two flags */}
-                <div className="flex h-5 items-center gap-1 overflow-hidden">
-                  <Flags flags={c.flags.slice(0, 2)} />
-                  {extraFlags > 0 && <span className="rounded-md bg-slate-100 px-1.5 py-0.5 text-[11px] font-semibold text-slate-600">+{extraFlags}</span>}
-                </div>
               </button>
               <div className="mt-auto flex border-t border-violet-50 text-xs font-semibold">
                 {p.phone ? <a href={`tel:${p.phone}`} className="flex-1 py-1.5 text-center text-violet-700 hover:bg-violet-50">📞 Call</a> : <span className="flex-1 py-1.5 text-center text-slate-300">No number</span>}
@@ -273,7 +266,7 @@ function MiniRing({ score }: { score: number | null }) {
   const pct = score ?? 0;
   return (
     <span className="grid h-8 w-8 shrink-0 place-items-center rounded-full" title={score === null ? "Not scored" : `Score ${score}/100`}
-      style={{ background: `conic-gradient(#7c3aed 0%, #d946ef ${pct * 0.45}%, #f97316 ${pct}%, #efe9fb ${pct}% 100%)` }}>
+      style={{ background: `conic-gradient(#9f7aea 0%, #d58fd8 ${pct * 0.45}%, #f7b386 ${pct}%, #f3eefb ${pct}% 100%)` }}>
       <span className="grid h-6 w-6 place-items-center rounded-full bg-white text-[10px] font-bold text-ink">{score ?? "–"}</span>
     </span>
   );
