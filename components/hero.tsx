@@ -26,7 +26,7 @@ export function BookingCalendar({ title, offset, days }: { title: string; offset
   const bookings = days.reduce((n, d) => n + d.pins.filter((p) => p.kind === "booking").length, 0);
 
   return (
-    <div tabIndex={-1} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOpen(null)} className="w-[272px] rounded-2xl border border-violet-100 bg-white/95 p-4 shadow-[0_24px_50px_-20px_rgba(91,33,182,0.35)] backdrop-blur" onMouseLeave={() => setOpen(null)}>
+    <div tabIndex={-1} onBlur={(e) => !e.currentTarget.contains(e.relatedTarget as Node) && setOpen(null)} className="w-[252px] rounded-2xl border border-violet-100 bg-white/95 p-4 shadow-[0_24px_50px_-20px_rgba(91,33,182,0.35)] backdrop-blur" onMouseLeave={() => setOpen(null)}>
       <div className="flex items-center justify-between">
         <div className="text-xs font-bold text-ink">📅 {title}</div>
         <div className="flex items-center gap-2 text-[10px] font-semibold text-muted">
@@ -34,7 +34,7 @@ export function BookingCalendar({ title, offset, days }: { title: string; offset
           <span className="flex items-center gap-1"><span className="bg-ombre h-2 w-2 rounded-full" />{bookings} booked</span>
         </div>
       </div>
-      <div className="mt-3 grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-muted">
+      <div className="mt-2 grid grid-cols-7 gap-1 text-center text-[10px] font-bold uppercase text-muted">
         {["M", "T", "W", "T", "F", "S", "S"].map((d, i) => <div key={i}>{d}</div>)}
       </div>
       <div className="mt-1 grid grid-cols-7 gap-1">
@@ -51,7 +51,7 @@ export function BookingCalendar({ title, offset, days }: { title: string; offset
                 onMouseEnter={() => has && setOpen(d.day)}
                 onFocus={() => has && setOpen(d.day)}
                 onClick={() => has && setOpen(d.day)}
-                className={`relative grid h-8 w-full place-items-center rounded-lg text-xs font-semibold transition ${
+                className={`relative grid h-7 w-full place-items-center rounded-md text-xs font-semibold transition ${
                   booking ? "bg-ombre text-white shadow-sm" : has ? "bg-violet-50 text-violet-800 hover:bg-violet-100" : "text-ink/60"
                 } ${d.isToday ? "ring-2 ring-orange-400 ring-offset-1" : ""} ${isOpen ? "scale-110" : ""}`}
                 aria-label={has ? `${d.day}: ${d.pins.length} item(s)` : String(d.day)}

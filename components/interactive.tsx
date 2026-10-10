@@ -122,7 +122,7 @@ export function PeopleBoard({ view, people }: { view: View; people: Person[] }) 
         <Empty text="No callers match. Test calls appear here a few seconds after they end." />
       ) : (
         <>
-          <div className="mt-4 flex items-center justify-end">
+          <div className="mt-2 flex items-center justify-end">
             <div className="inline-flex rounded-full border border-violet-100 bg-white p-0.5 text-xs font-semibold shadow-sm" role="tablist" aria-label="Layout">
               {(["board", "list"] as const).map((l) => (
                 <button key={l} role="tab" aria-selected={layout === l} onClick={() => setLayout(l)}
@@ -218,25 +218,25 @@ const SWATCH: Record<string, string> = {
 
 function MoodBoard({ people, onOpen }: { people: Person[]; onOpen: (p: Person) => void }) {
   return (
-    <div className="mt-3 columns-1 gap-4 sm:columns-2 lg:columns-3">
+    <div className="mt-2 columns-1 gap-3 sm:columns-2 lg:columns-3 xl:columns-4">
       {people.map((p, i) => {
         const c = p.latest;
         const booked = p.calls.find((x) => x.booking_start);
         return (
-          <article key={p.key} className="animate-rise group mb-4 break-inside-avoid" style={{ animationDelay: `${Math.min(i, 9) * 50}ms` }}>
+          <article key={p.key} className="animate-rise group mb-3 break-inside-avoid" style={{ animationDelay: `${Math.min(i, 9) * 50}ms` }}>
             <div className="card card-hover relative overflow-hidden">
               {/* pin */}
               <span className="absolute left-1/2 top-1.5 z-10 h-3 w-3 -translate-x-1/2 rounded-full bg-white shadow ring-2 ring-fuchsia-400" aria-hidden />
-              <div className={`h-14 ${SWATCH[c.status ?? "incomplete"]} relative`}>
+              <div className={`h-8 ${SWATCH[c.status ?? "incomplete"]} relative`}>
                 <div className="absolute inset-0 opacity-30 [background-image:linear-gradient(rgba(255,255,255,.6)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,.6)_1px,transparent_1px)] [background-size:14px_14px]" />
               </div>
-              <button onClick={() => onOpen(p)} className="block w-full p-4 pt-0 text-left">
-                <div className="relative z-10 -mt-6 flex items-end justify-between">
+              <button onClick={() => onOpen(p)} className="block w-full p-3 pt-0 text-left">
+                <div className="relative z-10 -mt-4 flex items-end justify-between">
                   <span className="rounded-full ring-4 ring-white"><Avatar name={p.name ?? p.phone ?? "?"} /></span>
                   <MiniRing score={c.score} />
                 </div>
                 <div className="mt-2 flex items-center gap-2">
-                  <h3 className="truncate font-display text-lg font-semibold text-ink">{p.name ?? p.phone ?? "Unknown caller"}</h3>
+                  <h3 className="truncate font-display text-base font-semibold text-ink">{p.name ?? p.phone ?? "Unknown caller"}</h3>
                   {p.calls.length > 1 && <span className="shrink-0 rounded-full bg-violet-100 px-1.5 text-[10px] font-bold text-violet-700">{p.calls.length} calls</span>}
                 </div>
                 <div className="mt-0.5 text-xs text-muted">{p.calls[0].label.atShort}</div>
@@ -245,17 +245,17 @@ function MoodBoard({ people, onOpen }: { people: Person[]; onOpen: (p: Person) =
                   {c.location_area && <span className="rounded-full bg-violet-50 px-2 py-0.5 text-violet-800">📍 {c.location_area}</span>}
                   {c.property && <span className="rounded-full bg-orange-50 px-2 py-0.5 text-orange-800">🏠 {c.property}</span>}
                 </div>
-                {c.summary && <p className="mt-2 line-clamp-2 text-xs leading-relaxed text-ink/70">{c.summary.split("\n")[0]}</p>}
+                {c.summary && <p className="mt-1.5 line-clamp-1 text-xs text-ink/70">{c.summary.split("\n")[0]}</p>}
                 {booked && (
-                  <div className="mt-3 flex items-center gap-2 rounded-xl bg-violet-50 px-3 py-2 text-xs font-semibold text-violet-800">
+                  <div className="mt-2 flex items-center gap-2 rounded-lg bg-violet-50 px-2.5 py-1.5 text-xs font-semibold text-violet-800">
                     📅 {booked.label.booking}
                   </div>
                 )}
                 {c.flags.length > 0 && <div className="mt-2"><Flags flags={c.flags} /></div>}
               </button>
               <div className="flex border-t border-violet-50 text-xs font-semibold opacity-80 transition group-hover:opacity-100">
-                {p.phone ? <a href={`tel:${p.phone}`} className="flex-1 py-2.5 text-center text-violet-700 hover:bg-violet-50">📞 Call</a> : <span className="flex-1 py-2.5 text-center text-slate-300">No number</span>}
-                <button onClick={() => onOpen(p)} className="flex-1 border-l border-violet-50 py-2.5 text-fuchsia-700 hover:bg-fuchsia-50">Details →</button>
+                {p.phone ? <a href={`tel:${p.phone}`} className="flex-1 py-2 text-center text-violet-700 hover:bg-violet-50">📞 Call</a> : <span className="flex-1 py-2 text-center text-slate-300">No number</span>}
+                <button onClick={() => onOpen(p)} className="flex-1 border-l border-violet-50 py-2 text-fuchsia-700 hover:bg-fuchsia-50">Details →</button>
               </div>
             </div>
           </article>
@@ -268,9 +268,9 @@ function MoodBoard({ people, onOpen }: { people: Person[]; onOpen: (p: Person) =
 function MiniRing({ score }: { score: number | null }) {
   const pct = score ?? 0;
   return (
-    <span className="grid h-11 w-11 place-items-center rounded-full" title={score === null ? "Not scored" : `Score ${score}/100`}
+    <span className="grid h-9 w-9 place-items-center rounded-full" title={score === null ? "Not scored" : `Score ${score}/100`}
       style={{ background: `conic-gradient(#7c3aed 0%, #d946ef ${pct * 0.45}%, #f97316 ${pct}%, #efe9fb ${pct}% 100%)` }}>
-      <span className="grid h-9 w-9 place-items-center rounded-full bg-white text-[11px] font-bold text-ink">{score ?? "–"}</span>
+      <span className="grid h-7 w-7 place-items-center rounded-full bg-white text-[10px] font-bold text-ink">{score ?? "–"}</span>
     </span>
   );
 }

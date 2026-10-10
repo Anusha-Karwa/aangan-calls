@@ -10,7 +10,7 @@ export function DailyBars({ days }: { days: { label: string; calls: number; book
   const total = days.reduce((s, d) => s + d.calls, 0);
   return (
     <div>
-      <div className="relative flex h-16 items-end gap-[2px]" onMouseLeave={() => setHover(null)} role="img" aria-label={`Calls per day, ${total} in total`}>
+      <div className="relative flex h-10 items-end gap-[2px]" onMouseLeave={() => setHover(null)} role="img" aria-label={`Calls per day, ${total} in total`}>
         {days.map((d, i) => {
           const h = d.calls ? Math.max(14, (d.calls / max) * 100) : 0;
           return (
@@ -30,7 +30,7 @@ export function DailyBars({ days }: { days: { label: string; calls: number; book
           );
         })}
       </div>
-      <div className="mt-1.5 flex justify-between text-[10px] font-semibold text-muted">
+      <div className="mt-1 flex justify-between text-[10px] font-semibold text-muted">
         <span>{days[0]?.label}</span>
         <span>{days[days.length - 1]?.label}</span>
       </div>
