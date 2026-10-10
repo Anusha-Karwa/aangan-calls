@@ -1,13 +1,12 @@
 import { NextResponse } from "next/server";
-import { env } from "@/lib/env";
-import { VAANI_API } from "@/lib/vaani";
+import { env, VAANI_API } from "@/lib/env";
 
 export const dynamic = "force-dynamic";
 
-// Public: starts an in-browser voice session with the Aangan agent (Vaani WebRTC dispatch).
+// Starts an in-browser voice session with the Aangan agent (Vaani WebRTC dispatch).
 // The browser gets a short-lived LiveKit token, never the Vaani API key.
-// When the call ends, Vaani's webhook (call_postprocessing, call_id = room_name) feeds the
-// designer dashboard exactly like a phone call.
+// When the call ends, Vaani's webhook (set once in the Vaani account) sends the conversation to the
+// studio's designer dashboard, exactly like a phone call. This site stores nothing.
 
 const GREETING = "Hi, this is Aangan Studio's assistant. This call is recorded so our designer has your details. May I know your name?";
 

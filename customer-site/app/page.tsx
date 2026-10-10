@@ -11,7 +11,7 @@ export const metadata: Metadata = {
 };
 
 // Public customer page: one idea, one button. Talk to the studio's voice assistant in the browser.
-export default function Talk() {
+export default function Home() {
   const videos = env("TALK_VIDEO_URLS").split(",").map((s) => s.trim()).filter(Boolean);
   return (
     <main className="relative flex min-h-screen flex-col overflow-hidden">
