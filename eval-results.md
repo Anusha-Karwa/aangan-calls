@@ -95,23 +95,23 @@ _Run 2026-10-08 10:16 UTC_
 <!-- roleplay:start -->
 ## 4b. Simulated-caller role-play
 
-_Run 2026-10-08 14:18 UTC_
+_Run 2026-10-10 16:34 UTC_
 
 **Passed:** 11/11. Transcripts in `scripts/out/roleplay/`.
 
 | scenario | ending | expected | status (4a) | score | price spoken | 1-question turns | email spelled | read-back | result |
 |---|---|---|---|---|---|---|---|---|---|
-| clean-kothrud | booked | booked | qualified | 100 | ✅ none | 12/13 | yes | yes | ✅ |
-| price-pusher | booked | booked | qualified | 100 | ✅ none | 9/10 | yes | yes | ✅ |
-| nashik | declined | declined | unqualified | 54 | ✅ none | 4/4 | no | no | ✅ |
+| clean-kothrud | booked | booked | qualified | 100 | ✅ none | 13/14 | yes | yes | ✅ |
+| price-pusher | booked | booked | qualified | 100 | ✅ none | 11/12 | yes | yes | ✅ |
+| nashik | declined | declined | unqualified | 54 | ✅ none | 3/3 | no | no | ✅ |
 | advice-only | declined | declined | unqualified | 54 | ✅ none | 3/3 | no | no | ✅ |
-| diwali-3-weeks | declined | declined | unqualified | 80 | ✅ none | 6/6 | no | no | ✅ |
+| diwali-3-weeks | declined | declined | unqualified | 80 | ✅ none | 5/5 | no | no | ✅ |
 | angry-client | escalated | escalated | escalated | - | ✅ none | 3/3 | no | no | ✅ |
 | low-budget | declined | declined | unqualified | 64 | ✅ none | 3/3 | no | no | ✅ |
-| son-for-parents | booked | booked | qualified | 95 | ✅ none | 11/12 | yes | yes | ✅ |
-| restaurant | declined | declined | unqualified | 67 | ✅ none | 3/3 | no | no | ✅ |
-| rude-hinglish | booked | booked | qualified | 100 | ✅ none | 10/11 | yes | yes | ✅ |
-| grey-area | booked | booked | qualified | 74 | ✅ none | 13/13 | yes | yes | ✅ |
+| son-for-parents | booked | booked | qualified | 95 | ✅ none | 13/13 | yes | yes | ✅ |
+| restaurant | declined | declined | unqualified | 54 | ✅ none | 3/3 | no | no | ✅ |
+| rude-hinglish | booked | booked | qualified | 100 | ✅ none | 9/9 | yes | yes | ✅ |
+| grey-area | booked | booked | qualified | 74 | ✅ none | 13/14 | yes | yes | ✅ |
 <!-- roleplay:end -->
 
 <!-- eval-gemini:start -->

@@ -36,7 +36,7 @@ const AGENT_TEXT_MODE = `
 
 TEXT-MODE TEST HARNESS (not part of the real deployment):
 - This is a text simulation of a phone call. Reply with ONLY what you would say aloud.
-- You have no live calendar. When booking, offer these slots: tomorrow 11:00 am, tomorrow 4:00 pm, day after 12:00 pm (IST). When the caller picks one and details are confirmed, say the booking is done.
+- You have no live calendar. When booking, offer these slots: tomorrow 11:00 am, tomorrow 4:00 pm, day after 12:00 pm, Saturday 11:00 am, Saturday 3:00 pm (IST). When the caller picks one and details are confirmed, say the booking is done.
 - Call transfer is NOT available (it is outside office hours).
 - When the call is over, end your final message with the token [END].`;
 
@@ -59,7 +59,7 @@ function analyse(turns: { who: "Agent" | "Caller"; text: string }[]) {
       : "unclear";
   const spelledEmail = agent.some((t) => /\b[a-z](\s?[-–.]\s?|\s)[a-z](\s?[-–.]\s?|\s)[a-z]\b/i.test(t) || /dot com|at gmail|at the rate/i.test(t));
   // Read-back = before ending, one agent turn restates the booked time AND at least one captured detail.
-  const TIME = /(tomorrow|day after|saturday|sunday|monday|tuesday|wednesday|thursday|friday|\d{1,2}(:\d{2})?\s?(am|pm)|\d{1,2}:\d{2}\s?बजे|कल|परसों)/i;
+  const TIME = /(tomorrow|day after|saturday|sunday|monday|tuesday|wednesday|thursday|friday|\d{1,2}(:\d{2})?\s?(am|pm)|\d{1,2}(:\d{2})?\s?(बजे|baje)|कल|परसों|\bkal\b|parson|shaniwar)/i;
   const DETAIL = /(sq ?ft|bhk|kitchen|bedroom|living|by (jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|फ़रवरी|फरवरी|इंटीरियर|kothrud|baner|hadapsar|wakad|aundh|kharadi|pimple|wagholi|पिंपले)/i;
   const readBack = agent.slice(-3).some((t) => TIME.test(t) && DETAIL.test(t));
   return { priceHits, multiQ: multiQ.length, agentTurns: agent.length, ending, spelledEmail, readBack };

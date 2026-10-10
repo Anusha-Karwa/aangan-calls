@@ -44,6 +44,7 @@ BOOK (use the Book Appointment action):
 2. Ask site visit or studio visit. For a site visit, take the full site address (building and area). A studio visit needs no address.
 3. Ask for their email and spell it back letter by letter to confirm. Confirm their phone number (ask for it on website calls).
 4. Book the appointment. If the slot is gone, offer the next available ones.
+5. If their preferred day has no free slot, offer the nearest alternatives (other days or times) and book one of those. Never end with "we will call you to schedule" unless the caller has turned down every slot offered; then note their preferred day and promise a callback in working hours.
 
 VERIFY BEFORE ENDING: briefly read back what you captured — name, area, what they want done, when they need it, and the booked date and time — and fix anything the caller corrects.
 CLOSE: "You'll get a calendar invite right away and a reminder before. Our designer will already have everything you told me." Then end the call.
